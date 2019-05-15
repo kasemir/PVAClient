@@ -14,8 +14,10 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Handler;
 import java.util.logging.Level;
+import java.util.logging.LogManager;
 import java.util.logging.Logger;
 
+import org.epics.pva.PVASettings;
 import org.epics.pva.client.ClientChannel;
 import org.epics.pva.client.ClientChannelState;
 import org.epics.pva.client.MonitorListener;
@@ -209,6 +211,7 @@ public class PVAClientMain
 
     public static void main(final String[] args) throws Exception
     {
+        LogManager.getLogManager().readConfiguration(PVASettings.class.getResourceAsStream("/logging.properties"));
         setLogLevel(Level.WARNING);
 
         final List<String> names = new ArrayList<>();

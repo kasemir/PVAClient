@@ -249,7 +249,7 @@ public class ChannelSearch
             {
                 try
                 {
-                    logger.log(Level.FINER, () -> "Sending search To " + addr + "\n" + Hexdump.toHexdump(send_buffer));
+                    logger.log(Level.FINER, () -> "Sending search to UDP  " + addr + "\n" + Hexdump.toHexdump(send_buffer));
                     udp.send(send_buffer, addr);
                 }
                 catch (Exception ex)

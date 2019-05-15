@@ -54,6 +54,7 @@ Implementation Status
    registers new PVs with ChannelSearch,
    creates TCPHandler when channel found.
  * ChannelSearch: Exponential backup to ~30 seconds
+ * Reset channel to search when TCP connection closed
  * Monitor beacons, boost search for missing channels
  * CreateChannelRequest
  * ChannelListener for notification about connect, disconnect

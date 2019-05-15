@@ -72,7 +72,7 @@ class TCPHandler
         @Override
         public void encodeRequest(ByteBuffer buffer) throws Exception
         {
-            // NOP
+            throw new IllegalStateException("END_REQUEST not meant to be encoded");
         }
     };
 
@@ -300,6 +300,7 @@ class TCPHandler
                 logger.log(Level.WARNING, Thread.currentThread().getName() + " error", ex);
         }
         logger.log(Level.FINER, Thread.currentThread().getName() + " done.");
+        client.handleConnectionClosed(this);
         return null;
     }
 

@@ -136,6 +136,35 @@ public class PVAClient
         channel.createOnServer(tcp);
     }
 
+    /** Called by {@link TCPHandler} when connection is closed
+     *  @param tcp Connection that just got closed
+     */
+    void handleConnectionClosed(final TCPHandler tcp)
+    {
+        // Forget this connection
+        final TCPHandler removed = tcp_handlers.remove(tcp.getAddress());
+        if (removed != tcp)
+            logger.log(Level.WARNING, "Closed unknown " + tcp);
+
+        // Reset all channels that used the connection
+        // so they can search again
+        for (ClientChannel channel : channels_by_id.values())
+        {
+            try
+            {
+                if (channel.getTCP() == tcp)
+                {
+                    channel.resetConnection();
+                    search.register(channel, true);
+                }
+            }
+            catch (Exception ex)
+            {
+                logger.log(Level.WARNING, "Error resetting channel " + channel);
+            }
+        }
+    }
+
     /** Close all channels and network connections
      *
      *  <p>Waits a little for all channels to be closed.
@@ -163,5 +192,7 @@ public class PVAClient
 
         for (TCPHandler handler : tcp_handlers.values())
             handler.close();
+
+        udp.close();
     }
 }

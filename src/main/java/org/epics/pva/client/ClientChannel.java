@@ -108,6 +108,12 @@ public class ClientChannel
         // Else: Channel was destroyed or closed, ignore the late connection
     }
 
+    void resetConnection()
+    {
+        tcp = null;
+        setState(ClientChannelState.INIT);
+    }
+
     /** Read (get) channel's type info from server
      *
      *  <p>Returned {@link PVAStructure} only describes the type,
@@ -188,7 +194,9 @@ public class ClientChannel
     /** Close the channel */
     public void close()
     {
-        tcp.submit(new DestroyChannelRequest(this));
+        final TCPHandler safe = tcp;
+        if (safe != null)
+            safe.submit(new DestroyChannelRequest(this));
     }
 
     @Override

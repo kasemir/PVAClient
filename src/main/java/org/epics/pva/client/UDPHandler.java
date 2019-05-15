@@ -28,7 +28,7 @@ import org.epics.pva.data.PVABool;
 import org.epics.pva.data.PVAFieldDesc;
 import org.epics.pva.data.PVAString;
 
-/** Receives search replies and beacons
+/** Sends and receives search replies, monitors beacons
  *  @author Kay Kasemir
  */
 @SuppressWarnings("nls")
@@ -56,10 +56,24 @@ class UDPHandler
 
     private final BeaconHandler beacon_handler;
     private final SearchResponseHandler search_response;
-    private final DatagramChannel udp;
+
+    // When multiple UDP sockets bind to the same port,
+    // broadcast traffic reaches all of them.
+    // Direct traffic is only received by the socket bound last.
+    //
+    // Create one UDP socket for the search send/response,
+    // bound to a free port, so we can receive the search replies.
+    private final DatagramChannel udp_search;
     private final InetAddress response_address;
     private final int response_port;
     private final ByteBuffer receiveBuffer = ByteBuffer.allocate(PVAConstants.MAX_UDP_PACKET);
+
+    // Listen for UDP beacons on a separate socket, bound to the EPICS_PVA_BROADCAST_PORT,
+    // with the understanding that it will only receive broadcasts;
+    // since they are often blocked by firewall, may receive nothing, ever.
+    private final DatagramChannel udp_beacon;
+    private final ByteBuffer beaconBuffer = ByteBuffer.allocate(PVAConstants.MAX_UDP_PACKET);
+
     private volatile boolean running = true;
 
     public UDPHandler(final BeaconHandler beacon_handler,
@@ -67,16 +81,27 @@ class UDPHandler
     {
         this.beacon_handler = beacon_handler;
         this.search_response = search_response;
-        // Current use of multicast addresses works only with INET, not INET6
-        udp = DatagramChannel.open(StandardProtocolFamily.INET);
-        udp.configureBlocking(true);
-        udp.socket().setBroadcast(true);
-        udp.socket().setReuseAddress(true);
-        udp.bind(new InetSocketAddress(PVASettings.EPICS_PVA_BROADCAST_PORT));
 
-        final InetSocketAddress local_address = (InetSocketAddress) udp.getLocalAddress();
+        // Current use of multicast addresses works only with INET, not INET6
+        // Seach buffer may send broadcasts and gets re-used
+        udp_search = DatagramChannel.open(StandardProtocolFamily.INET);
+        udp_search.configureBlocking(true);
+        udp_search.socket().setBroadcast(true);
+        udp_search.socket().setReuseAddress(true);
+        udp_search.bind(new InetSocketAddress(0));
+
+        final InetSocketAddress local_address = (InetSocketAddress) udp_search.getLocalAddress();
         response_address = local_address.getAddress();
         response_port = local_address.getPort();
+
+        // Beacon socket only receives, does not send broadcasts
+        udp_beacon = DatagramChannel.open(StandardProtocolFamily.INET);
+        udp_beacon.configureBlocking(true);
+        udp_beacon.socket().setReuseAddress(true);
+        udp_beacon.bind(new InetSocketAddress(PVASettings.EPICS_PVA_BROADCAST_PORT));
+
+        logger.log(Level.FINE, "Awaiting search replies and beacons on UDP " + response_address +
+                               " port " + response_port + " and " + PVASettings.EPICS_PVA_BROADCAST_PORT);
     }
 
     /** Try to listen to multicast messages
@@ -91,11 +116,11 @@ class UDPHandler
             {
                 final InetAddress group = InetAddress.getByName(PVASettings.EPICS_PVA_MULTICAST_GROUP);
                 final InetSocketAddress local_broadcast = new InetSocketAddress(group, PVASettings.EPICS_PVA_BROADCAST_PORT);
-                udp.join(group, loopback);
+                udp_search.join(group, loopback);
 
                 logger.log(Level.CONFIG, "Multicast group " + local_broadcast + " using network interface " + loopback.getDisplayName());
-                udp.setOption(StandardSocketOptions.IP_MULTICAST_LOOP, true);
-                udp.setOption(StandardSocketOptions.IP_MULTICAST_IF, loopback);
+                udp_search.setOption(StandardSocketOptions.IP_MULTICAST_LOOP, true);
+                udp_search.setOption(StandardSocketOptions.IP_MULTICAST_IF, loopback);
             }
         }
         catch (Exception ex)
@@ -118,43 +143,53 @@ class UDPHandler
 
     public void send(final ByteBuffer buffer, final InetSocketAddress target) throws Exception
     {
-        udp.send(buffer, target);
+        udp_search.send(buffer, target);
     }
 
     public void start()
     {
-        final Thread thread = new Thread(this::run, "UDP-receiver " + response_address + ":" + response_port);
+        Thread thread = new Thread(() -> run(udp_search, receiveBuffer), "UDP-receiver " + response_address + ":" + response_port);
+        thread.setDaemon(true);
+        thread.start();
+
+        thread = new Thread(() -> run(udp_beacon, beaconBuffer), "UDP-receiver " + response_address + ":" + PVASettings.EPICS_PVA_BROADCAST_PORT);
         thread.setDaemon(true);
         thread.start();
     }
 
-    private void run()
+    /** Read, decode, handle messages
+     *
+     *  <p>Same code for messages from the 'search' and 'beacon' socket,
+     *  though each socket is likely to see only one type of message.
+     *
+     *  @param udp Socket to use
+     *  @param buffer Receive buffer to use
+     */
+    private void run(final DatagramChannel udp, final ByteBuffer buffer)
     {
-        logger.log(Level.FINE, "Awaiting UDP replies on " + response_address +
-                               " port " + response_port);
+        logger.log(Level.FINE, "Starting " + Thread.currentThread().getName());
         while (running)
         {
             try
             {
-                receiveBuffer.clear();
+                buffer.clear();
 
                 // Wait for next UDP packet
-                final InetSocketAddress from = (InetSocketAddress) udp.receive(receiveBuffer);
+                final InetSocketAddress from = (InetSocketAddress) udp.receive(buffer);
 
                 // XXX Check against list of ignored addresses?
 
-                receiveBuffer.flip();
+                buffer.flip();
 
-                logger.log(Level.FINER, () -> "Received UDP from " + from + "\n" + Hexdump.toHexdump(receiveBuffer));
-                handleMessages(from, receiveBuffer);
+                logger.log(Level.FINER, () -> "Received UDP from " + from + "\n" + Hexdump.toHexdump(buffer));
+                handleMessages(from, buffer);
             }
             catch (Exception ex)
             {
                 logger.log(Level.WARNING, "UDP receive error", ex);
             }
         }
-        logger.log(Level.FINE, "Exiting UDP receive thread for " + response_address +
-                               " port " + response_port);
+        logger.log(Level.FINE, "Exiting " + Thread.currentThread().getName());
     }
 
 
@@ -174,16 +209,16 @@ class UDPHandler
                 return false;
             }
 
-            final byte version = receiveBuffer.get();
+            final byte version = buffer.get();
 
-            final byte flags = receiveBuffer.get();
+            final byte flags = buffer.get();
             if ((flags & PVAHeader.FLAG_BIG_ENDIAN) != 0)
                 buffer.order(ByteOrder.BIG_ENDIAN);
             else
                 buffer.order(ByteOrder.LITTLE_ENDIAN);
 
-            final byte command = receiveBuffer.get();
-            final int payload = receiveBuffer.getInt();
+            final byte command = buffer.get();
+            final int payload = buffer.getInt();
             final int next = buffer.position() + payload;
             if (next > buffer.limit())
             {
@@ -220,7 +255,7 @@ class UDPHandler
         case PVAHeader.CMD_SEARCH_REPLY:
             return handleSearchReply(from, version, payload, buffer);
         default:
-            logger.log(Level.WARNING, "PVA Server " + from + " sent UDP packet with unknown command " + command);
+            logger.log(Level.WARNING, "PVA Server " + from + " sent UDP packet with unknown command 0x" + Integer.toHexString(command));
         }
         return false;
     }
@@ -336,5 +371,10 @@ class UDPHandler
         }
 
         return true;
+    }
+
+    public void close()
+    {
+        // TODO Stop threads, close sockets
     }
 }
