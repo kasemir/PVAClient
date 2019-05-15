@@ -1,0 +1,145 @@
+/*******************************************************************************
+ * Copyright (c) 2019 Oak Ridge National Laboratory.
+ * All rights reserved. This program and the accompanying materials
+ * are made available under the terms of the Eclipse Public License v1.0
+ * which accompanies this distribution, and is available at
+ * http://www.eclipse.org/legal/epl-v10.html
+ ******************************************************************************/
+package org.epics.pva.data;
+
+import static org.epics.pva.PVASettings.logger;
+
+import java.nio.ByteBuffer;
+import java.util.logging.Level;
+
+/** PV Access structure
+ *
+ *  <p>Holds one or more {@link PVAData} elements.
+ *  Often named as for example a normative type.
+ *
+ *  @author Kay Kasemir
+ */
+@SuppressWarnings("nls")
+public class PVAStructureArray extends PVAData
+{
+    public static PVAStructureArray decodeType(final PVATypeRegistry types, final String name, final ByteBuffer buffer) throws Exception
+    {
+        final PVAData element_type = types.decodeType("", buffer);
+        if (! (element_type instanceof PVAStructure))
+            throw new Exception("Expected structure for element type of structure[] '" + name + "', got " + element_type);
+
+        return new PVAStructureArray(name, (PVAStructure) element_type);
+    }
+
+    /** Structure type name */
+    private final PVAStructure element_type;
+
+    private volatile short type_id = 0;
+
+    /** Unmodifiable list of elements.
+     *
+     *  <p>The value of each element may be updated, but
+     *  no elements can be added, removed, replaced.
+     */
+    private volatile PVAStructure[] elements = new PVAStructure[0];
+
+    public PVAStructureArray(final String name, final PVAStructure element_type)
+    {
+        super(name);
+        this.element_type = element_type;
+    }
+
+    @Override
+    public void setValue(final Object new_value) throws Exception
+    {
+        // Cannot set structure, only individual elements
+        throw new Exception("Cannot set " + getStructureName() + " " + name + " to " + new_value);
+    }
+
+    /** @return Structure type name */
+    public String getStructureName()
+    {
+        return element_type.getStructureName();
+    }
+
+    /** @return Structure type ID, 0 when not set */
+    public short getTypeID()
+    {
+        return type_id;
+    }
+
+    /** @param id Type ID, 0 to clear */
+    public void setTypeID(final short id)
+    {
+        this.type_id = id;
+    }
+
+    @Override
+    public PVAStructureArray cloneType(final String name)
+    {
+        return new PVAStructureArray(name, element_type);
+    }
+
+    @Override
+    public void decode(final PVATypeRegistry types, final ByteBuffer buffer) throws Exception
+    {
+        final int count = PVASize.decodeSize(buffer);
+        // Try to re-use elements
+        PVAStructure[] new_elements = elements;
+        if (new_elements == null  ||  new_elements.length != count)
+            new_elements = new PVAStructure[count];
+        for (int i=0; i<count; ++i)
+        {   // Is this element non-null?
+            final boolean non_null = PVABool.decodeBoolean(buffer);
+            if (non_null)
+            {   // Try to update existing element
+                PVAStructure element = new_elements[i];
+                if (element == null)
+                    element = element_type.cloneType("");
+                element.decode(types, buffer);
+                new_elements[i] = element;
+            }
+            else
+                new_elements[i] = null;
+        }
+        elements = new_elements;
+        logger.log(Level.FINER, () -> "Decoded structure[] element: " + elements);
+    }
+
+    @Override
+    public void encode(final ByteBuffer buffer) throws Exception
+    {
+        throw new Exception("TODO");
+    }
+
+    @Override
+    public void formatType(int level, StringBuilder buffer)
+    {
+        indent(level, buffer);
+        if (getStructureName().isEmpty())
+            buffer.append("structure[]");
+        else
+            buffer.append(getStructureName()).append("[] ");
+        buffer.append(name);
+        if (type_id > 0)
+            buffer.append(" [#").append(type_id).append("]");
+        buffer.append("\n");
+        element_type.formatType(level + 1, buffer);
+    }
+
+    @Override
+    protected void format(final int level, final StringBuilder buffer)
+    {
+        indent(level, buffer);
+        if (getStructureName().isEmpty())
+            buffer.append("structure[] ");
+        else
+            buffer.append(getStructureName()).append("[] ");
+        buffer.append(name);
+        for (PVAData element : elements)
+        {
+            buffer.append("\n");
+            element.format(level+1, buffer);
+        }
+    }
+}

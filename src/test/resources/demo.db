@@ -1,0 +1,22 @@
+# softIocPVA -d demo.db
+
+record(calc, "ramp")
+{
+  field(SCAN, "1 second")
+  field(INPA, "ramp")
+  field(CALC, "A+1")
+}
+
+record(calc, "saw")
+{
+  field(SCAN, "1 second")
+  field(INPA, "saw")
+  field(CALC, "A<10 ? A+1 : 0")
+}
+
+record(calc, "rnd")
+{
+  field(SCAN, "1 second")
+  field(CALC, "100*RNDM")
+}
+

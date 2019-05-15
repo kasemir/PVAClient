@@ -1,0 +1,5 @@
+#!/bin/sh
+
+JAR=target/pvaclient.jar
+
+java -jar $JAR "$@"
