@@ -260,4 +260,12 @@ public class ChannelSearch
             }
         }
     }
+
+    /** Stop searching channels */
+    public void close()
+    {
+        searched_channels.clear();
+
+        timer.shutdown();
+    }
 }

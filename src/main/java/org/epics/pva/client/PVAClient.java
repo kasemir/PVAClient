@@ -171,6 +171,10 @@ public class PVAClient
      */
     public void close()
     {
+        // Stop searching for missing channels
+        search.close();
+
+        // Assume caller has closed channels, wait for that
         int wait = 50;
         while (! channels_by_id.isEmpty())
         {
@@ -185,11 +189,13 @@ public class PVAClient
                 }
             else
             {
+                // Warn and move on
                 logger.log(Level.WARNING, "PVA Client closed with remaining channels: " + channels_by_id.values());
                 break;
             }
         }
 
+        // Stop TCP and UDP threads
         for (TCPHandler handler : tcp_handlers.values())
             handler.close();
 

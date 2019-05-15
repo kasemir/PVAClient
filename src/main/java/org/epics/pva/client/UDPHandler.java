@@ -74,6 +74,7 @@ class UDPHandler
     private final DatagramChannel udp_beacon;
     private final ByteBuffer beaconBuffer = ByteBuffer.allocate(PVAConstants.MAX_UDP_PACKET);
 
+    private volatile Thread search_thread, beacon_thread;
     private volatile boolean running = true;
 
     public UDPHandler(final BeaconHandler beacon_handler,
@@ -148,13 +149,13 @@ class UDPHandler
 
     public void start()
     {
-        Thread thread = new Thread(() -> run(udp_search, receiveBuffer), "UDP-receiver " + response_address + ":" + response_port);
-        thread.setDaemon(true);
-        thread.start();
+        search_thread = new Thread(() -> run(udp_search, receiveBuffer), "UDP-receiver " + response_address + ":" + response_port);
+        search_thread.setDaemon(true);
+        search_thread.start();
 
-        thread = new Thread(() -> run(udp_beacon, beaconBuffer), "UDP-receiver " + response_address + ":" + PVASettings.EPICS_PVA_BROADCAST_PORT);
-        thread.setDaemon(true);
-        thread.start();
+        beacon_thread = new Thread(() -> run(udp_beacon, beaconBuffer), "UDP-receiver " + response_address + ":" + PVASettings.EPICS_PVA_BROADCAST_PORT);
+        beacon_thread.setDaemon(true);
+        beacon_thread.start();
     }
 
     /** Read, decode, handle messages
@@ -172,21 +173,21 @@ class UDPHandler
         {
             try
             {
-                buffer.clear();
-
                 // Wait for next UDP packet
+                buffer.clear();
                 final InetSocketAddress from = (InetSocketAddress) udp.receive(buffer);
+                buffer.flip();
 
                 // XXX Check against list of ignored addresses?
-
-                buffer.flip();
 
                 logger.log(Level.FINER, () -> "Received UDP from " + from + "\n" + Hexdump.toHexdump(buffer));
                 handleMessages(from, buffer);
             }
             catch (Exception ex)
             {
-                logger.log(Level.WARNING, "UDP receive error", ex);
+                if (running)
+                    logger.log(Level.WARNING, "UDP receive error", ex);
+                // else: Ignore, closing
             }
         }
         logger.log(Level.FINE, "Exiting " + Thread.currentThread().getName());
@@ -375,6 +376,21 @@ class UDPHandler
 
     public void close()
     {
-        // TODO Stop threads, close sockets
+        // Close sockets, wait a little for threads to exit
+        running = false;
+        try
+        {
+            udp_search.close();
+            udp_beacon.close();
+
+            if (search_thread != null)
+                search_thread.join(5000);
+            if (beacon_thread != null)
+                beacon_thread.join(5000);
+        }
+        catch (Exception ex)
+        {
+            // Ignore
+        }
     }
 }
