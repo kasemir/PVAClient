@@ -2,4 +2,9 @@
 
 JAR=target/pvaclient.jar
 
-java -jar $JAR "$@"
+if [ -r $JAR ]
+then
+    java -jar $JAR "$@"
+else
+    java -cp target/classes org.epics.pva.tool.PVAClientMain "$@"
+fi

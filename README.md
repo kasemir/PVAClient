@@ -67,6 +67,7 @@ Implementation Status
    
 TODO:
 
+ * Testing
  * Monitor re-subscription
  * Echo test when no new data for a while
  * Handle all the data types: Fixed size or bounded arrays
