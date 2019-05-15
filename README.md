@@ -54,6 +54,7 @@ Implementation Status
    registers new PVs with ChannelSearch,
    creates TCPHandler when channel found.
  * ChannelSearch: Exponential backup to ~30 seconds
+ * Echo test when no new data for a while
  * Reset channel to search when TCP connection closed
  * Monitor beacons, boost search for missing channels
  * CreateChannelRequest
@@ -69,7 +70,5 @@ Implementation Status
 TODO:
 
  * Testing
- * Monitor re-subscription
- * Echo test when no new data for a while
  * Handle all the data types: Fixed size or bounded arrays
  

@@ -22,6 +22,8 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -29,6 +31,7 @@ import java.util.logging.Level;
 
 import org.epics.pva.PVAConstants;
 import org.epics.pva.PVAHeader;
+import org.epics.pva.PVASettings;
 import org.epics.pva.data.Hexdump;
 import org.epics.pva.data.PVASize;
 import org.epics.pva.data.PVAStatus;
@@ -91,11 +94,25 @@ class TCPHandler
         return thread;
     });
 
+    /** Timer used to check if connection is still alive */
+    private static final ScheduledExecutorService timer = Executors.newSingleThreadScheduledExecutor(run ->
+    {
+        final Thread thread = new Thread(run, "TCP Alive Timer");
+        thread.setDaemon(true);
+        return thread;
+    });
+
     /** Thread that runs {@link TCPHandler#receiver()} */
     private final Future<Void> receive_thread;
 
     /** Thread that runs {@link TCPHandler#sender()} */
     private volatile Future<Void> send_thread;
+
+    private volatile ScheduledFuture<?> alive_check;
+
+    private volatile long last_life_sign = System.currentTimeMillis();
+
+    private static final RequestEncoder echo_request = new EchoRequest();
 
     /** Indicates completion of the connection validation:
      *  Server sent connection validation request,
@@ -119,6 +136,8 @@ class TCPHandler
         // Start receiving data
         receive_thread = thread_pool.submit(this::receiver);
 
+        final int period = Math.max(1, PVASettings.EPICS_CA_CONN_TMO / 6);
+        alive_check = timer.scheduleWithFixedDelay(this::checkResponsiveness, period, period, TimeUnit.SECONDS);
         // Don't start the send thread, yet.
         // To prevent sending messages before the server is ready,
         // it's started when server confirms the connection.
@@ -187,7 +206,25 @@ class TCPHandler
         response_handlers.remove(handler.getRequestID());
     }
 
-    // TODO Timer to send echo requests, BlockingClientTCPTransport.callback()
+    /** Check responsiveness of this TCP connection */
+    private void checkResponsiveness()
+    {
+        logger.log(Level.FINER, () -> "Check responsiveness of " + this);
+        final long idle = System.currentTimeMillis() - last_life_sign;
+
+        // TODO When to consider 'unresponsive' but keep the connection open?
+        // TODO When to close the connection and start over?
+        logger.log(Level.FINER, () -> "Nothing for " + idle + "ms");
+        if (idle >= PVASettings.EPICS_CA_CONN_TMO * 1000 * 3 / 4)
+            submit(echo_request);
+    }
+
+    /** Called whenever e.g. value is received and server is thus alive */
+    private void markAlive()
+    {
+        last_life_sign = System.currentTimeMillis();
+        // TODO If was_dead   markAlife()
+    }
 
     private Void sender()
     {
@@ -417,7 +454,6 @@ class TCPHandler
             case PVAHeader.CMD_GET_TYPE:
                 handleGetType(buffer, payload_size);
                 break;
-            // TODO Handle more commands
             default:
                 logger.log(Level.WARNING, "Cannot handle reply for application command " + command);
             }
@@ -450,8 +486,7 @@ class TCPHandler
         }
         else
             logger.log(Level.FINE, "Received ECHO");
-        // TODO Reply to echo before validation?
-        System.out.println("SHOULD ECHO?");
+        markAlive();
     }
 
     private void handleValidationRequest(final ByteBuffer buffer, final int payload_size) throws Exception
@@ -551,6 +586,7 @@ class TCPHandler
         if (handler == null)
             throw new Exception("Received unsolicited Get Response for request " + request_id);
         handler.handleResponse(buffer, payload_size);
+        markAlive();
     }
 
     private void handlePut(final ByteBuffer buffer, final int payload_size) throws Exception
@@ -564,6 +600,7 @@ class TCPHandler
         if (handler == null)
             throw new Exception("Received unsolicited Put Response for request " + request_id);
         handler.handleResponse(buffer, payload_size);
+        markAlive();
     }
 
     private void handleMonitor(final ByteBuffer buffer, final int payload_size) throws Exception
@@ -577,6 +614,7 @@ class TCPHandler
         if (handler == null)
             throw new Exception("Received unsolicited Monitor Response for request " + request_id);
         handler.handleResponse(buffer, payload_size);
+        markAlive();
     }
 
     private void handleGetType(final ByteBuffer buffer, final int payload_size) throws Exception
@@ -590,12 +628,15 @@ class TCPHandler
         if (handler == null)
             throw new Exception("Received unsolicited Get-Type Response for request " + request_id);
         handler.handleResponse(buffer, payload_size);
+        markAlive();
     }
 
     /** Close network socket and threads */
     public void close()
     {
         logger.log(Level.FINE, "Closing " + this);
+
+        alive_check.cancel(false);
 
         // Wait until all requests are sent out
         submit(END_REQUEST);

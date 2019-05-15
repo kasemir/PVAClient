@@ -33,11 +33,18 @@ public class PVASettings
     /** Multicast address */
     public static String EPICS_PVA_MULTICAST_GROUP = "224.0.0.128";
 
+    /** Connection timeout [seconds]
+     *
+     * <p>When approaching this time without having received a new value,
+     * an 'Echo' request is sent. If still no reply, the channel is disconnected.
+     */
+    public static int EPICS_CA_CONN_TMO = 30;
 
     static
     {
         EPICS_PVA_ADDR_LIST = set("EPICS_PVA_ADDR_LIST", EPICS_PVA_ADDR_LIST);
         EPICS_PVA_BROADCAST_PORT = set("EPICS_PVA_BROADCAST_PORT", EPICS_PVA_BROADCAST_PORT);
+        EPICS_CA_CONN_TMO = set("EPICS_CA_CONN_TMO", EPICS_CA_CONN_TMO);
     }
 
     private static String set(final String name, final String default_value)
