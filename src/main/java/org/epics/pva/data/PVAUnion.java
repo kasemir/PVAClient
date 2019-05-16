@@ -11,6 +11,7 @@ import static org.epics.pva.PVASettings.logger;
 
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
+import java.util.BitSet;
 import java.util.Collections;
 import java.util.List;
 import java.util.logging.Level;
@@ -136,6 +137,43 @@ public class PVAUnion extends PVAData
         final PVAUnion clone = new PVAUnion(name, union_name, copy);
         clone.type_id = type_id;
         return clone;
+    }
+
+    @Override
+    public void encodeType(final ByteBuffer buffer, final BitSet described) throws Exception
+    {
+        final short type_id = getTypeID();
+        if (type_id != 0)
+        {
+            final int u_type_id = Short.toUnsignedInt(type_id);
+            if (described.get(u_type_id))
+            {   // Refer to existing definition
+                buffer.put(PVAFieldDesc.ONLY_ID_TYPE_CODE);
+                buffer.putShort(type_id);
+                // Done!
+                return;
+            }
+            else
+            {   // (Re-)define this type
+                buffer.put(PVAFieldDesc.FULL_WITH_ID_TYPE_CODE);
+                buffer.putShort(type_id);
+                described.set(u_type_id);
+            }
+        }
+
+        buffer.put((byte) 0x10000001);
+
+        // Encode 'UNION' type, name
+        buffer.put((byte) (PVAComplex.FIELD_DESC_TYPE | PVAComplex.UNION));
+        PVAString.encodeString(union_name, buffer);
+
+        // Encode options
+        PVASize.encodeSize(elements.size(), buffer);
+        for (PVAData element : elements)
+        {
+            PVAString.encodeString(element.getName(), buffer);
+            element.encodeType(buffer, described);
+        }
     }
 
     @Override

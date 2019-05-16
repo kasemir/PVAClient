@@ -8,6 +8,7 @@
 package org.epics.pva.data;
 
 import java.nio.ByteBuffer;
+import java.util.BitSet;
 
 /** PV Access 'any'
 *
@@ -40,6 +41,12 @@ public class PVAny extends PVAData
     public PVAData cloneType(final String name)
     {
         return new PVAny(name);
+    }
+
+    @Override
+    public void encodeType(ByteBuffer buffer, BitSet described) throws Exception
+    {
+        buffer.put((byte) (PVAComplex.FIELD_DESC_TYPE | PVAComplex.VARIANT_UNION));
     }
 
     @Override

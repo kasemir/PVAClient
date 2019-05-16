@@ -30,6 +30,7 @@ public class PVATypeRegistry
     private final ConcurrentHashMap<Short, PVAData> types = new ConcurrentHashMap<>();
 
     /** Decode a 'Field'
+     *  @param name Name for the decoded field
      *  @param buffer Buffer that's positioned on field encoding
      *  @return PVAData
      *  @throws Exception on error

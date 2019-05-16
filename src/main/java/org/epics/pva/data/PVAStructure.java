@@ -203,6 +203,7 @@ public class PVAStructure extends PVAData
             element.encode(buffer);
     }
 
+    @Override
     public void encodeType(final ByteBuffer buffer, final BitSet described) throws Exception
     {
         final short type_id = getTypeID();
@@ -233,12 +234,7 @@ public class PVAStructure extends PVAData
         for (PVAData element : elements)
         {
             PVAString.encodeString(element.getName(), buffer);
-
-            // TODO Define PVAData.encodeType() so all can be encoded
-            if (! (element instanceof PVAStructure))
-                throw new Exception("Can for now only encode struct");
-
-            ((PVAStructure)element).encodeType(buffer, described);
+            element.encodeType(buffer, described);
         }
     }
 

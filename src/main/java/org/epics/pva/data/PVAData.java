@@ -8,6 +8,7 @@
 package org.epics.pva.data;
 
 import java.nio.ByteBuffer;
+import java.util.BitSet;
 
 /** PV Access Data
  *
@@ -49,6 +50,13 @@ public abstract class PVAData
      *  @return A clone of this type, with requested name, not cloning the data
      */
     public abstract PVAData cloneType(String name);
+
+    /** Encode type description
+     *  @param buffer Buffer where type info is added
+     *  @param described Bitset of already detailed complex types
+     *  @throws Exception on error
+     */
+    public abstract void encodeType(ByteBuffer buffer, BitSet described) throws Exception;
 
     /** Decode value for this {@link PVAData}
      *  @param types Type registry

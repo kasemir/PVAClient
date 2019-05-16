@@ -8,6 +8,7 @@
 package org.epics.pva.data;
 
 import java.nio.ByteBuffer;
+import java.util.BitSet;
 
 /** 'Primitive' PV Access data type
  *   @author Kay Kasemir
@@ -73,6 +74,12 @@ public class PVAFloat extends PVAData
     public PVAFloat cloneType(final String name)
     {
         return new PVAFloat(name);
+    }
+
+    @Override
+    public void encodeType(ByteBuffer buffer, BitSet described) throws Exception
+    {
+        buffer.put((byte) 0b01000010);
     }
 
     @Override

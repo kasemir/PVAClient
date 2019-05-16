@@ -8,6 +8,7 @@
 package org.epics.pva.data;
 
 import java.nio.ByteBuffer;
+import java.util.BitSet;
 
 /** 'Primitive' PV Access data type
  *   @author Kay Kasemir
@@ -60,6 +61,15 @@ public class PVALong extends PVAData
     public PVALong cloneType(final String name)
     {
         return new PVALong(name, unsigned);
+    }
+
+    @Override
+    public void encodeType(ByteBuffer buffer, BitSet described) throws Exception
+    {
+        if (unsigned)
+            buffer.put((byte) 0b00100111);
+        else
+            buffer.put((byte) 0b00100011);
     }
 
     @Override

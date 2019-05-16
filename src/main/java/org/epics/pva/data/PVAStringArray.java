@@ -9,6 +9,7 @@ package org.epics.pva.data;
 
 import java.nio.ByteBuffer;
 import java.util.Arrays;
+import java.util.BitSet;
 import java.util.List;
 import java.util.Objects;
 
@@ -59,6 +60,12 @@ public class PVAStringArray extends PVAData
     public PVAStringArray cloneType(final String name)
     {
         return new PVAStringArray(name);
+    }
+
+    @Override
+    public void encodeType(ByteBuffer buffer, BitSet described) throws Exception
+    {
+        buffer.put((byte) (PVAString.FIELD_DESC_TYPE | PVAFieldDesc.Array.VARIABLE_SIZE.mask));
     }
 
     @Override

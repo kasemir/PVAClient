@@ -10,6 +10,7 @@ package org.epics.pva.data;
 import static org.epics.pva.PVASettings.logger;
 
 import java.nio.ByteBuffer;
+import java.util.BitSet;
 import java.util.logging.Level;
 
 /** PV Access structure
@@ -78,6 +79,33 @@ public class PVAStructureArray extends PVAData
     public PVAStructureArray cloneType(final String name)
     {
         return new PVAStructureArray(name, element_type);
+    }
+
+    @Override
+    public void encodeType(final ByteBuffer buffer, final BitSet described) throws Exception
+    {
+        final short type_id = getTypeID();
+        if (type_id != 0)
+        {
+            final int u_type_id = Short.toUnsignedInt(type_id);
+            if (described.get(u_type_id))
+            {   // Refer to existing definition
+                buffer.put(PVAFieldDesc.ONLY_ID_TYPE_CODE);
+                buffer.putShort(type_id);
+                // Done!
+                return;
+            }
+            else
+            {   // (Re-)define this type
+                buffer.put(PVAFieldDesc.FULL_WITH_ID_TYPE_CODE);
+                buffer.putShort(type_id);
+                described.set(u_type_id);
+            }
+        }
+
+        // Encode 'structure array' and its element definition
+        buffer.put((byte) (PVAComplex.FIELD_DESC_TYPE | PVAFieldDesc.Array.VARIABLE_SIZE.mask | PVAComplex.STRUCTURE));
+        element_type.encodeType(buffer, described);
     }
 
     @Override

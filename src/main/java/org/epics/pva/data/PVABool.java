@@ -8,6 +8,7 @@
 package org.epics.pva.data;
 
 import java.nio.ByteBuffer;
+import java.util.BitSet;
 
 /** 'Primitive' PV Access data type
  *   @author Kay Kasemir
@@ -61,6 +62,12 @@ public class PVABool extends PVAData
     public PVABool cloneType(final String name)
     {
         return new PVABool(name);
+    }
+
+    @Override
+    public void encodeType(ByteBuffer buffer, BitSet described) throws Exception
+    {
+        buffer.put(FIELD_DESC_TYPE);
     }
 
     /** @param buffer Buffer from which to decode boolean
