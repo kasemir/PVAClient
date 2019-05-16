@@ -10,6 +10,9 @@ package org.epics.pva.data;
 import static org.epics.pva.PVASettings.logger;
 
 import java.nio.ByteBuffer;
+import java.time.Instant;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.BitSet;
 import java.util.Collections;
@@ -381,6 +384,32 @@ public class PVAStructure extends PVADataWithID
             element.formatType(level+1, buffer);
         }
     }
+    
+    /** Check if structure is time_t, enum_t, alarm_t, ..
+     *  @param buffer where detail is added
+     */
+    private void decodeSpecial(final StringBuilder buffer)
+    {
+        final String alarm = PVAStructures.getAlarm(this);
+        if (alarm != null)
+        {
+            buffer.append(" [").append(alarm).append("]");
+            return;
+        }
+        
+        final Instant time = PVAStructures.getTime(this);
+        if (time != null)
+        {
+            final LocalDateTime local = LocalDateTime.ofInstant(time, ZoneId.systemDefault());
+            buffer.append(" [").append(local.toString().replace('T', ' ')).append("]");
+            return;
+        }
+        
+        final String label = PVAStructures.getEnum(this);
+        if (label != null)
+            buffer.append(" [").append(label).append("]");
+        
+    }
 
     @Override
     protected void format(final int level, final StringBuilder buffer)
@@ -391,6 +420,7 @@ public class PVAStructure extends PVADataWithID
         else
             buffer.append(getStructureName()).append(" ");
         buffer.append(name);
+        decodeSpecial(buffer);
         for (PVAData element : elements)
         {
             buffer.append("\n");
@@ -398,3 +428,5 @@ public class PVAStructure extends PVADataWithID
         }
     }
 }
+
+    
