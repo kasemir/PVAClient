@@ -102,8 +102,6 @@ public class ClientChannel
             this.sid = sid;
             logger.log(Level.FINE, () -> "Received create channel reply " + this + ", SID " + sid);
             listener.channelStateChanged(this, ClientChannelState.CONNECTED);
-
-            // TODO resubscribeSubscriptions();
         }
         // Else: Channel was destroyed or closed, ignore the late connection
     }

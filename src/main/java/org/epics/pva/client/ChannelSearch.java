@@ -46,12 +46,12 @@ public class ChannelSearch
         final AtomicInteger search_counter;
         final ClientChannel channel;
 
-        SearchedChannel(final ClientChannel channel, final boolean now)
+        SearchedChannel(final ClientChannel channel)
         {
             // Counter of 0 means the next regular search will increment
             // to 1 (no search), then 2 (power of two -> search).
             // So it'll "soon" perform a regular search.
-            this.search_counter = new AtomicInteger(now ? 0 : MAX_SEARCH_RESET);
+            this.search_counter = new AtomicInteger(0);
             this.channel = channel;
             // Not starting an _immediate_ search in here because
             // this needs to be added to searched_channels first.
@@ -143,7 +143,7 @@ public class ChannelSearch
     {
         logger.log(Level.FINE, () -> "Register search for " + channel.getName() + " " + channel.getId());
         channel.setState(ClientChannelState.SEARCHING);
-        searched_channels.computeIfAbsent(channel.getId(), id -> new SearchedChannel(channel, now));
+        searched_channels.computeIfAbsent(channel.getId(), id -> new SearchedChannel(channel));
         // Issue immediate search request?
         if (now)
             search(channel);

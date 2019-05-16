@@ -123,7 +123,6 @@ public class PVAClient
         {
             try
             {
-                // XXX Try connecting 3 times with 100ms pause?
                 return new TCPHandler(this, addr, guid);
             }
             catch (Exception ex)
@@ -136,18 +135,17 @@ public class PVAClient
         channel.createOnServer(tcp);
     }
 
-    /** Called by {@link TCPHandler} when connection is closed
-     *  @param tcp Connection that just got closed
+    /** Called by {@link TCPHandler} when connection is lost
+     *  @param tcp TCP handler that just lost connection and needs to be closed
      */
-    void handleConnectionClosed(final TCPHandler tcp)
+    void handleConnectionLost(final TCPHandler tcp)
     {
         // Forget this connection
         final TCPHandler removed = tcp_handlers.remove(tcp.getAddress());
         if (removed != tcp)
-            logger.log(Level.WARNING, "Closed unknown " + tcp);
+            logger.log(Level.WARNING, "Closed unknown " + tcp, new Exception("Call stack"));
 
         // Reset all channels that used the connection
-        // so they can search again
         for (ClientChannel channel : channels_by_id.values())
         {
             try
@@ -155,14 +153,17 @@ public class PVAClient
                 if (channel.getTCP() == tcp)
                 {
                     channel.resetConnection();
-                    search.register(channel, true);
+                    // Search again soon
+                    search.register(channel, false);
                 }
             }
             catch (Exception ex)
             {
-                logger.log(Level.WARNING, "Error resetting channel " + channel);
+                logger.log(Level.WARNING, "Error resetting channel " + channel, ex);
             }
         }
+
+        tcp.close(false);
     }
 
     /** Close all channels and network connections
@@ -197,7 +198,7 @@ public class PVAClient
 
         // Stop TCP and UDP threads
         for (TCPHandler handler : tcp_handlers.values())
-            handler.close();
+            handler.close(true);
 
         udp.close();
     }

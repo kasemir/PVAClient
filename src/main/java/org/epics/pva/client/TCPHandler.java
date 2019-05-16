@@ -125,7 +125,7 @@ class TCPHandler
 
     public TCPHandler(final PVAClient client, final InetSocketAddress address, final Guid guid) throws Exception
     {
-        logger.log(Level.FINE, "Connecting to TCP " + address);
+        logger.log(Level.FINE, () -> "TCPHandler " + guid + " for " + address + " created.");
         this.client = client;
         this.guid = guid;
         socket = SocketChannel.open(address);
@@ -136,8 +136,10 @@ class TCPHandler
         // Start receiving data
         receive_thread = thread_pool.submit(this::receiver);
 
-        final int period = Math.max(1, PVASettings.EPICS_CA_CONN_TMO / 6);
-        alive_check = timer.scheduleWithFixedDelay(this::checkResponsiveness, period, period, TimeUnit.SECONDS);
+        // For default EPICS_CA_CONN_TMO: 30 sec, send echo at ~15 sec:
+        // Check every ~3 seconds
+        final long period = Math.max(1, PVASettings.EPICS_CA_CONN_TMO * 1000L / 30 * 3);
+        alive_check = timer.scheduleWithFixedDelay(this::checkResponsiveness, period, period, TimeUnit.MILLISECONDS);
         // Don't start the send thread, yet.
         // To prevent sending messages before the server is ready,
         // it's started when server confirms the connection.
@@ -209,21 +211,32 @@ class TCPHandler
     /** Check responsiveness of this TCP connection */
     private void checkResponsiveness()
     {
-        logger.log(Level.FINER, () -> "Check responsiveness of " + this);
         final long idle = System.currentTimeMillis() - last_life_sign;
-
-        // TODO When to consider 'unresponsive' but keep the connection open?
-        // TODO When to close the connection and start over?
-        logger.log(Level.FINER, () -> "Nothing for " + idle + "ms");
-        if (idle >= PVASettings.EPICS_CA_CONN_TMO * 1000 * 3 / 4)
-            submit(echo_request);
+        if (idle > PVASettings.EPICS_CA_CONN_TMO * 1000)
+        {
+            // If idle for full EPICS_CA_CONN_TMO, disconnect and start over
+            logger.log(Level.FINE, () -> this + " idle for " + idle + "ms, closing");
+            client.handleConnectionLost(this);
+        }
+        else if (idle >= PVASettings.EPICS_CA_CONN_TMO * 1000 / 2)
+        {
+            // With default EPICS_CA_CONN_TMO of 30 seconds,
+            // Echo requested every 15 seconds.
+            logger.log(Level.FINE, () -> this + " idle for " + idle + "ms, requesting echo");
+            // Skip echo if the send queue already has items to avoid
+            // filling queue which isn't emptied anyway.
+// TODO Re-enable echo
+//            if (send_items.isEmpty())
+//                submit(echo_request);
+//            else
+//                logger.log(Level.FINE, () -> "Skipping echo, send queue already has items to send");
+        }
     }
 
     /** Called whenever e.g. value is received and server is thus alive */
     private void markAlive()
     {
         last_life_sign = System.currentTimeMillis();
-        // TODO If was_dead   markAlife()
     }
 
     private Void sender()
@@ -337,7 +350,8 @@ class TCPHandler
                 logger.log(Level.WARNING, Thread.currentThread().getName() + " error", ex);
         }
         logger.log(Level.FINER, Thread.currentThread().getName() + " done.");
-        client.handleConnectionClosed(this);
+        if (! closed)
+            client.handleConnectionLost(this);
         return null;
     }
 
@@ -631,8 +645,10 @@ class TCPHandler
         markAlive();
     }
 
-    /** Close network socket and threads */
-    public void close()
+    /** Close network socket and threads
+     *  @param wait Wait for threads to end?
+     */
+    public void close(final boolean wait)
     {
         logger.log(Level.FINE, "Closing " + this);
 
@@ -642,7 +658,7 @@ class TCPHandler
         submit(END_REQUEST);
         try
         {
-            if (send_thread != null)
+            if (send_thread != null  &&  wait)
                 send_thread.get(5, TimeUnit.SECONDS);
         }
         catch (Exception ex)
@@ -654,12 +670,14 @@ class TCPHandler
         {
             closed = true;
             socket.close();
-            receive_thread.get(5, TimeUnit.SECONDS);
+            if (wait)
+                receive_thread.get(5, TimeUnit.SECONDS);
         }
         catch (Exception ex)
         {
             logger.log(Level.WARNING, "Cannot stop " + receive_thread, ex);
         }
+        logger.log(Level.FINE, () -> this + " closed.");
     }
 
     @Override
