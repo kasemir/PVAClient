@@ -24,7 +24,7 @@ import java.util.logging.Level;
  *  @author Kay Kasemir
  */
 @SuppressWarnings("nls")
-public class PVAUnion extends PVAData
+public class PVAUnion extends PVADataWithID
 {
     static PVAUnion decodeType(final PVATypeRegistry types, final String name, final ByteBuffer buffer) throws Exception
     {
@@ -47,8 +47,6 @@ public class PVAUnion extends PVAData
 
     /** Union type name */
     private final String union_name;
-
-    private volatile short type_id = 0;
 
     /** Unmodifiable list of elements.
      *
@@ -114,18 +112,6 @@ public class PVAUnion extends PVAData
     public String getUnionName()
     {
         return union_name;
-    }
-
-    /** @return Union type ID, 0 when not set */
-    public short getTypeID()
-    {
-        return type_id;
-    }
-
-    /** @param id Type ID, 0 to clear */
-    public void setTypeID(final short id)
-    {
-        this.type_id = id;
     }
 
     @Override

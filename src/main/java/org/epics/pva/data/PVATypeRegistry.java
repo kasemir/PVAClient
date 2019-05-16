@@ -39,11 +39,12 @@ public class PVATypeRegistry
     {
         final byte field_desc = buffer.get();
 
-        // TODO Set type ID of decoded items
         if (field_desc == PVAFieldDesc.FULL_WITH_ID_TYPE_CODE)
         {
             final short type_id = buffer.getShort();
             final PVAData type = decodeType(name, buffer);
+            if (type instanceof PVADataWithID)
+                ((PVADataWithID)type).setTypeID(type_id);
             logger.log(Level.FINER, "Type ID " + type_id + ": " + type.formatType());
             // Remember type
             types.put(type_id, type.cloneType(name));
@@ -57,6 +58,8 @@ public class PVATypeRegistry
             // combination is known, eliminating need to decode type.
             // For now ignoring the tag, always decoding the type.
             final PVAData type = decodeType(name, buffer);
+            if (type instanceof PVADataWithID)
+                ((PVADataWithID)type).setTypeID(type_id);
             logger.log(Level.FINER, "Type ID " + type_id + ", tag " + tag + ": " + type.formatType());
             // Remember type
             types.put(type_id, type.cloneType(name));
@@ -68,6 +71,8 @@ public class PVATypeRegistry
             final PVAData type = types.get(type_id);
             if (type == null)
                 throw new Exception("Unknown FieldDesc Type ID " + type_id);
+            if (type instanceof PVADataWithID)
+                ((PVADataWithID)type).setTypeID(type_id);
             logger.log(Level.FINER, "Re-using Type ID " + type_id);
             return type.cloneType(name);
         }

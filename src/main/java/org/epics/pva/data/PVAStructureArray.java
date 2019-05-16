@@ -21,7 +21,7 @@ import java.util.logging.Level;
  *  @author Kay Kasemir
  */
 @SuppressWarnings("nls")
-public class PVAStructureArray extends PVAData
+public class PVAStructureArray extends PVADataWithID
 {
     public static PVAStructureArray decodeType(final PVATypeRegistry types, final String name, final ByteBuffer buffer) throws Exception
     {
@@ -34,8 +34,6 @@ public class PVAStructureArray extends PVAData
 
     /** Structure type name */
     private final PVAStructure element_type;
-
-    private volatile short type_id = 0;
 
     /** Unmodifiable list of elements.
      *
@@ -61,18 +59,6 @@ public class PVAStructureArray extends PVAData
     public String getStructureName()
     {
         return element_type.getStructureName();
-    }
-
-    /** @return Structure type ID, 0 when not set */
-    public short getTypeID()
-    {
-        return type_id;
-    }
-
-    /** @param id Type ID, 0 to clear */
-    public void setTypeID(final short id)
-    {
-        this.type_id = id;
     }
 
     @Override
