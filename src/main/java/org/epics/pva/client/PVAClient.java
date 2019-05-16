@@ -19,13 +19,25 @@ import org.epics.pva.PVASettings;
 
 /** PVA Client
  *
- *  <p>Maintains pool of PVs, coordinates search requests etc.
+ *  <p>Maintain PVs, coordinates search requests etc.
+ *
+ *  <p>Does not pool PVs by name. A caller requesting
+ *  channels for the same name more than once will receive
+ *  separate channels, with different internal channel IDs,
+ *  which will result in separate channels on the PVA server.
+ *
+ *  <p>This is sufficient for simple clients,
+ *  and higher-level client libraries tend to already
+ *  pool PVs by name.
  *
  *  @author Kay Kasemir
  */
 @SuppressWarnings("nls")
 public class PVAClient
 {
+    /** Default channel listener logs state changes */
+    private static final ClientChannelListener DEFAULT_CHANNEL_LISTENER = (ch, state) ->  logger.log(Level.INFO, ch.toString());
+
     private final UDPHandler udp;
 
     final ChannelSearch search;
@@ -60,7 +72,19 @@ public class PVAClient
         return request_ids.incrementAndGet();
     }
 
-    /** Get or create channel by name
+    /** Create channel by name
+    *
+    *  <p>Starts search.
+    *
+    *  @param channel_name
+    *  @return {@link ClientChannel}
+    */
+    public ClientChannel getChannel(final String channel_name)
+    {
+        return getChannel(channel_name, DEFAULT_CHANNEL_LISTENER);
+    }
+
+    /** Create channel by name
      *
      *  <p>Starts search.
      *

@@ -10,6 +10,7 @@ package org.epics.pva.client;
 import static org.epics.pva.PVASettings.logger;
 
 import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.logging.Level;
@@ -34,8 +35,11 @@ public class ClientChannel
     private final int id = IDs.incrementAndGet();
     int sid = -1;
 
-    /** State, updated by other code in package */
-    private AtomicReference<ClientChannelState> state = new AtomicReference<>(ClientChannelState.INIT);
+    /** State
+     *
+     *  {@#awaitConnection()} SYNCs on state, so notifyAll() when changing
+     */
+    private final AtomicReference<ClientChannelState> state = new AtomicReference<>(ClientChannelState.INIT);
 
     /** TCP Handler, set by PVAClient */
     private volatile TCPHandler tcp = null;
@@ -79,11 +83,45 @@ public class ClientChannel
         return state.get();
     }
 
+    /** Wait for channel to connect
+     *  @param duration Time to wait
+     *  @param unit Time unit
+     *  @return <code>true</code> if connected, <code>false</code> if timed out
+     */
+    public boolean awaitConnection(final long duration, final TimeUnit unit)
+    {
+        final long end = System.currentTimeMillis() + unit.toMillis(duration);
+        while (state.get() != ClientChannelState.CONNECTED)
+        {
+            final long timeout = end - System.currentTimeMillis();
+            if (timeout <= 0)
+                return false;
+            try
+            {
+                synchronized (state)
+                {
+                    state.wait(timeout);
+                }
+            }
+            catch (InterruptedException ex)
+            {
+                return state.get() == ClientChannelState.CONNECTED;
+            }
+        }
+        return true;
+    }
+
     void setState(final ClientChannelState new_state)
     {
         final ClientChannelState old = state.getAndSet(new_state);
         if (old != new_state)
+        {
+            synchronized (state)
+            {
+                state.notifyAll();
+            }
             listener.channelStateChanged(this, new_state);
+        }
     }
 
     void createOnServer(final TCPHandler tcp)
@@ -101,6 +139,10 @@ public class ClientChannel
         {
             this.sid = sid;
             logger.log(Level.FINE, () -> "Received create channel reply " + this + ", SID " + sid);
+            synchronized (state)
+            {
+                state.notifyAll();
+            }
             listener.channelStateChanged(this, ClientChannelState.CONNECTED);
         }
         // Else: Channel was destroyed or closed, ignore the late connection

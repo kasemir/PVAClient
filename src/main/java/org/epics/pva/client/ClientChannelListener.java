@@ -14,6 +14,17 @@ package org.epics.pva.client;
 public interface ClientChannelListener
 {
     /** Invoked when the channel state changes
+     *
+     *  <p>Will be called as soon as possible, i.e. within
+     *  the thread that handles the network communication.
+     *
+     *  <p>Client code may invoke {@link ClientChannel#read()}
+     *  or {@link ClientChannel#subscribe()} to initiate
+     *  reading data or to start a subscription, but
+     *  client code <b>must not</b> block,
+     *  i.e. awaiting the result of {@link ClientChannel#read()}
+     *  is not permitted within this call.
+     *
      *  @param channel
      *  @param state
      */

@@ -70,6 +70,26 @@ public class ClientDemo
     }
 
     @Test
+    public void testSimplestGet() throws Exception
+    {
+        // Create a client
+        final PVAClient pva = new PVAClient();
+
+        // Connect
+        final ClientChannel ch = pva.getChannel("ramp");
+        if (ch.awaitConnection(5, TimeUnit.SECONDS))
+        {
+            // Get data
+            Future<PVAStructure> data = ch.read("");
+            System.out.println(ch.getName() + " = " + data.get());
+        }
+
+        // Close
+        ch.close();
+        pva.close();
+    }
+
+    @Test
     public void testGet() throws Exception
     {
         // Create a client
@@ -111,14 +131,8 @@ public class ClientDemo
         final PVAClient pva = new PVAClient();
 
         // Connect to one or more channels
-        final CountDownLatch connected = new CountDownLatch(1);
-        final ClientChannel channel = pva.getChannel("ramp", (ch, state) ->
-        {
-            System.out.println(ch);
-            if (state == ClientChannelState.CONNECTED)
-                connected.countDown();
-        });
-        assertTrue(connected.await(5, TimeUnit.SECONDS));
+        final ClientChannel channel = pva.getChannel("ramp");
+        channel.awaitConnection(5, TimeUnit.SECONDS);
 
         // Write data
         channel.write("value", 2.0).get(2, TimeUnit.SECONDS);
@@ -134,16 +148,12 @@ public class ClientDemo
     public void testPutEnum() throws Exception
     {
         final PVAClient pva = new PVAClient();
-        final CountDownLatch connected = new CountDownLatch(1);
-        final ClientChannel channel = pva.getChannel("ramp.SCAN", (ch, state) ->
-        {
-            if (state == ClientChannelState.CONNECTED)
-                connected.countDown();
-        });
-        assertTrue(connected.await(5, TimeUnit.SECONDS));
+        final ClientChannel channel = pva.getChannel("ramp.SCAN");
+        channel.awaitConnection(5, TimeUnit.SECONDS);
 
-        // Set SCAN to ".5 second" and back to "1 second"
-        channel.write("value", 7).get(2, TimeUnit.SECONDS);
+        // Set SCAN to ".1 second" and back to "1 second"
+        channel.write("value", 9).get(2, TimeUnit.SECONDS);
+        TimeUnit.SECONDS.sleep(3);
         channel.write("value", 6).get(2, TimeUnit.SECONDS);
 
         channel.close();
