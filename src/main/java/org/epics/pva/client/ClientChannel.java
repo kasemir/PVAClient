@@ -15,6 +15,8 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.logging.Level;
 
+import org.epics.pva.data.PVADouble;
+import org.epics.pva.data.PVAString;
 import org.epics.pva.data.PVAStructure;
 
 /** Client channel
@@ -177,6 +179,22 @@ public class ClientChannel
     }
 
     /** Write (put) an element of the channel's value on server
+     *
+     *  <p>The request needs to address one field of the channel,
+     *  and the value to write must be accepted by that field.
+     *
+     *  <p>For example, when "field(value)" addresses a double field,
+     *  {@link PVADouble#setValue()} will be called, so <code>new_value</code>
+     *  may be a {@link Number}.
+     *
+     *  <p>When "field(value)" addresses a text field,
+     *  {@link PVAString#setValue()} will be called,
+     *  which accepts any object by converting it to a string.
+     *
+     *  <p>When writing an enumerated field, its <code>int index</code>
+     *  will be written, requiring a {@link Number} that's then
+     *  used as an integer.
+     *
      *  @param request Request for element to write, e.g. "field(value)"
      *  @param new_value New value: Number, String
      *  @throws Exception on error
@@ -227,7 +245,6 @@ public class ClientChannel
         else
             logger.log(Level.WARNING, this + " destroyed with SID " + sid +" instead of expected " + this.sid);
 
-        // TODO Anything?
         client.forgetChannel(this);
     }
 

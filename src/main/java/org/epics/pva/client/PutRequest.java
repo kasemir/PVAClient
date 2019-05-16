@@ -42,6 +42,9 @@ class PutRequest extends CompletableFuture<Void> implements RequestEncoder, Resp
     /** Request to write channel's value
      *  @param channel {@link ClientChannel}
      *  @param request Request for element to write, e.g. "field(value)"
+     *  @param new_value Value to write.
+     *                   Must be accepted by {@link PVAData#setValue(Object)}
+     *                   for the requested field.
      */
     public PutRequest(final ClientChannel channel, final String request, final Object new_value)
     {
@@ -105,6 +108,7 @@ class PutRequest extends CompletableFuture<Void> implements RequestEncoder, Resp
             if (field instanceof PVAStructure)
             {
                 final PVAStructure struct = (PVAStructure) field;
+                // For enumerated type, write to index.
                 if ("enum_t".equals(struct.getStructureName()) ||
                     data.getStructureName().toLowerCase().indexOf("ntenum") > 0)
                     field = struct.get("index");
