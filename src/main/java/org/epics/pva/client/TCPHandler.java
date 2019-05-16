@@ -225,11 +225,10 @@ class TCPHandler
             logger.log(Level.FINE, () -> this + " idle for " + idle + "ms, requesting echo");
             // Skip echo if the send queue already has items to avoid
             // filling queue which isn't emptied anyway.
-// TODO Re-enable echo
-//            if (send_items.isEmpty())
-//                submit(echo_request);
-//            else
-//                logger.log(Level.FINE, () -> "Skipping echo, send queue already has items to send");
+            if (send_items.isEmpty())
+                submit(echo_request);
+            else
+                logger.log(Level.FINE, () -> "Skipping echo, send queue already has items to send");
         }
     }
 
