@@ -17,7 +17,10 @@ public class PVAHeader
     public static final byte PVA_MAGIC = (byte)0xCA;
 
     /** PVA protocol revision (implemented by this library) */
-    public static final byte PVA_PROTOCOL_REVISION = 1;
+    public static final byte PVA_PROTOCOL_REVISION = 2;
+
+    /** Oldest PVA protocol revision handled by this library */
+    public static final byte REQUIRED_PVA_PROTOCOL_REVISION = 1;
 
     /** Application message, single, by client, little endian */
     public static final byte FLAG_NONE       = 0;

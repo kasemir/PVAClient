@@ -26,7 +26,7 @@ class CreateChannelRequest implements RequestEncoder
     }
 
     @Override
-    public void encodeRequest(final ByteBuffer buffer) throws Exception
+    public void encodeRequest(final byte version, final ByteBuffer buffer) throws Exception
     {
         logger.log(Level.FINE, () -> "Sending create channel request for " + channel);
 

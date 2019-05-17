@@ -69,7 +69,7 @@ class GetRequest extends CompletableFuture<PVAStructure> implements RequestEncod
     }
 
     @Override
-    public void encodeRequest(final ByteBuffer buffer) throws Exception
+    public void encodeRequest(final byte version, final ByteBuffer buffer) throws Exception
     {
         if (init)
         {

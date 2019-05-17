@@ -15,6 +15,7 @@ import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.channels.SocketChannel;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ConcurrentHashMap;
@@ -73,7 +74,7 @@ class TCPHandler
     private static final RequestEncoder END_REQUEST = new RequestEncoder()
     {
         @Override
-        public void encodeRequest(ByteBuffer buffer) throws Exception
+        public void encodeRequest(final byte version, final ByteBuffer buffer) throws Exception
         {
             throw new IllegalStateException("END_REQUEST not meant to be encoded");
         }
@@ -122,6 +123,12 @@ class TCPHandler
      *  this flag is set.
      */
     private final AtomicBoolean connection_validated = new AtomicBoolean();
+
+    /** Protocol version used by server.
+     *
+     *  <p>Set when we receive its first set-byte-order message
+     */
+    private volatile byte server_version = 0;
 
     public TCPHandler(final PVAClient client, final InetSocketAddress address, final Guid guid) throws Exception
     {
@@ -250,7 +257,7 @@ class TCPHandler
                 final RequestEncoder to_send = send_items.take();
                 if (to_send == END_REQUEST)
                     break;
-                to_send.encodeRequest(send_buffer);
+                to_send.encodeRequest(server_version, send_buffer);
                 send_buffer.flip();
                 send(send_buffer);
             }
@@ -265,7 +272,7 @@ class TCPHandler
 
     private void send(final ByteBuffer buffer) throws Exception
     {
-        logger.log(Level.FINER, () -> "TCP send\n" + Hexdump.toHexdump(buffer));
+        logger.log(Level.FINER, () -> Thread.currentThread().getName() + ":\n" + Hexdump.toHexdump(buffer));
 
         // Original AbstractCodec.send() mentions
         // Microsoft KB article KB823764:
@@ -387,8 +394,11 @@ class TCPHandler
             throw new Exception("Message lacks magic");
 
         final byte version = buffer.get(1);
-        if (version != PVAHeader.PVA_PROTOCOL_REVISION)
-            throw new Exception("Cannot handle protocol version " + version);
+        if (version < PVAHeader.REQUIRED_PVA_PROTOCOL_REVISION)
+            throw new Exception("Cannot handle protocol version " + version +
+                                ", expect version " +
+                                PVAHeader.REQUIRED_PVA_PROTOCOL_REVISION +
+                                " or higher");
 
         final byte flags = buffer.get(2);
         if ((flags & PVAHeader.FLAG_SERVER) == 0)
@@ -413,6 +423,7 @@ class TCPHandler
     private void handleMessage(final ByteBuffer buffer, final int payload_size) throws Exception
     {
         final boolean control = (buffer.get(2) & PVAHeader.FLAG_CONTROL) != 0;
+        final byte version = buffer.get(1);
         final byte command = buffer.get(3);
         // Move to start of potential payload
         buffer.position(8);
@@ -420,6 +431,8 @@ class TCPHandler
             switch (command)
             {
             case PVAHeader.CTRL_SET_BYTE_ORDER:
+                // First message received from server, remember its version
+                server_version  = version;
                 handleSetByteOrder(buffer);
                 break;
             default:
@@ -495,7 +508,14 @@ class TCPHandler
         {
             final byte[] payload = new byte[payload_size];
             buffer.get(payload);
-            logger.log(Level.FINE, () -> "Received ECHO:\n" + Hexdump.toHexdump(payload));
+            if (Arrays.equals(payload, EchoRequest.CHECK))
+                logger.log(Level.FINE, () -> "Received ECHO:\n" + Hexdump.toHexdump(payload));
+            else
+            {
+                logger.log(Level.WARNING, this + " received invalid echo reply:\n" +
+                                          Hexdump.toHexdump(payload));
+                return;
+            }
         }
         else
             logger.log(Level.FINE, "Received ECHO");

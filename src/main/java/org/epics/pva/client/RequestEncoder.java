@@ -31,8 +31,9 @@ interface RequestEncoder
      *  When implementation returns, {@link TCPHandler} flips
      *  and sends the buffer content to server, then re-uses the buffer.
      *
+     *  @param version Protocol version used by the server
      *  @param buffer Send buffer into which to encode item to send
      *  @throws Exception on error
      */
-    public void encodeRequest(ByteBuffer buffer) throws Exception;
+    public void encodeRequest(byte version, ByteBuffer buffer) throws Exception;
 }

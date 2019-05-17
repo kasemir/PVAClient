@@ -56,7 +56,7 @@ class GetTypeRequest extends CompletableFuture<PVAStructure> implements RequestE
     }
 
     @Override
-    public void encodeRequest(final ByteBuffer buffer) throws Exception
+    public void encodeRequest(final byte version, final ByteBuffer buffer) throws Exception
     {
         logger.log(Level.FINE, () -> "Sending Get-Type request #" + request_id + " for " + channel + ", sub field '" + subfield + "'");
 
