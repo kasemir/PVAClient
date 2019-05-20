@@ -149,6 +149,10 @@ public class ChannelSearch
             search(channel);
     }
 
+    /** Stop searching for channel
+     *  @param channel_id
+     *  @return {@link ClientChannel}, <code>null</code> when channel wasn't searched any more
+     */
     public ClientChannel unregister(final int channel_id)
     {
         final SearchedChannel searched = searched_channels.remove(channel_id);
@@ -157,7 +161,6 @@ public class ChannelSearch
             logger.log(Level.FINE, () -> "Unregister search for " + searched.channel.getName() + " " + channel_id);
             return searched.channel;
         }
-        logger.log(Level.FINER, "Unknown search channel ID " + channel_id);
         return null;
     }
 

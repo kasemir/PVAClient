@@ -24,6 +24,9 @@ public enum ClientChannelState
     /** Connected via TCP */
     CONNECTED,
 
-    /** Channel was closed, cannot be used again */
+    /** Channel is closing, cannot be used again */
+    CLOSING,
+
+    /** Channel closing was confirmed by server, cannot be used again */
     CLOSED
 };

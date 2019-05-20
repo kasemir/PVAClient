@@ -111,8 +111,22 @@ public class PVAClient
 
     void forgetChannel(final ClientChannel channel)
     {
-        // TODO: Need to stop search when channel is closed
         channels_by_id.remove(channel.getId());
+
+        final TCPHandler tcp = channel.tcp;
+
+        // Did channel have a connection?
+        if (tcp == null)
+            return;
+
+        // Is any other channel using that connection?
+        for (ClientChannel other : channels_by_id.values())
+            if (other.tcp == tcp)
+                return;
+
+        // TODO Close the connection?
+//        tcp_handlers.remove(tcp.getAddress());
+//        tcp.close(false);
     }
 
     private void handleBeacon(final InetSocketAddress server, final Guid guid, final int changes)

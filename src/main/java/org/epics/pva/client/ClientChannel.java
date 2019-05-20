@@ -44,7 +44,7 @@ public class ClientChannel
     private final AtomicReference<ClientChannelState> state = new AtomicReference<>(ClientChannelState.INIT);
 
     /** TCP Handler, set by PVAClient */
-    private volatile TCPHandler tcp = null;
+    volatile TCPHandler tcp = null;
 
     ClientChannel(final PVAClient client, final String name, final ClientChannelListener listener)
     {
@@ -65,7 +65,6 @@ public class ClientChannel
             throw new Exception("Channel '" + name + "' is not connected");
         return tcp;
     }
-
 
     /** @return Client channel ID */
     int getId()
@@ -238,6 +237,7 @@ public class ClientChannel
 
     void channelDestroyed(final int sid)
     {
+        // Channel closure confirmed by server
         setState(ClientChannelState.CLOSED);
 
         if (sid == this.sid)
@@ -251,6 +251,14 @@ public class ClientChannel
     /** Close the channel */
     public void close()
     {
+        // In case channel is still being searched, stop
+        client.search.unregister(getId());
+
+        // Indicate that channel is closing
+        setState(ClientChannelState.CLOSING);
+
+        // Try to destroy channel on server,
+        // but depending on situation that may no longer reach the server
         final TCPHandler safe = tcp;
         if (safe != null)
             safe.submit(new DestroyChannelRequest(this));
