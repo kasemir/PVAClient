@@ -15,7 +15,7 @@ import java.util.List;
  *   @author Kay Kasemir
  */
 @SuppressWarnings("nls")
-public class PVADoubleArray extends PVAData
+public class PVADoubleArray extends PVAData implements PVAArray
 {
     private volatile double[] value;
 

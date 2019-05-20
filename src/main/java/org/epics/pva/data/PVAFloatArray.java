@@ -15,7 +15,7 @@ import java.util.List;
  *   @author Kay Kasemir
  */
 @SuppressWarnings("nls")
-public class PVAFloatArray extends PVAData
+public class PVAFloatArray extends PVAData implements PVAArray
 {
     private volatile float[] value;
 

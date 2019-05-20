@@ -21,7 +21,7 @@ import java.util.logging.Level;
  *  @author Kay Kasemir
  */
 @SuppressWarnings("nls")
-public class PVAStructureArray extends PVADataWithID
+public class PVAStructureArray extends PVADataWithID implements PVAArray
 {
     public static PVAStructureArray decodeType(final PVATypeRegistry types, final String name, final ByteBuffer buffer) throws Exception
     {

@@ -15,7 +15,7 @@ import java.util.List;
  *   @author Kay Kasemir
  */
 @SuppressWarnings("nls")
-public class PVAIntArray extends PVAData
+public class PVAIntArray extends PVAData implements PVAArray
 {
     private final boolean unsigned;
     private volatile int[] value;

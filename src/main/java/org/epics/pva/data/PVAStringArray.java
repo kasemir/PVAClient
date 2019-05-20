@@ -17,7 +17,7 @@ import java.util.Objects;
  *   @author Kay Kasemir
  */
 @SuppressWarnings("nls")
-public class PVAStringArray extends PVAData
+public class PVAStringArray extends PVAData implements PVAArray
 {
     private volatile String[] value = new String[0];
 

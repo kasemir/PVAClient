@@ -15,7 +15,7 @@ import java.util.List;
  *   @author Kay Kasemir
  */
 @SuppressWarnings("nls")
-public class PVABoolArray extends PVAData
+public class PVABoolArray extends PVAData implements PVAArray
 {
     private volatile boolean[] value;
 

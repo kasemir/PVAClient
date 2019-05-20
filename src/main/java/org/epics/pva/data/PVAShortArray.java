@@ -15,7 +15,7 @@ import java.util.List;
  *   @author Kay Kasemir
  */
 @SuppressWarnings("nls")
-public class PVAShortArray extends PVAData
+public class PVAShortArray extends PVAData implements PVAArray
 {
     private final boolean unsigned;
     private volatile short[] value;
