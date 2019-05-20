@@ -14,7 +14,7 @@ import java.util.BitSet;
  *   @author Kay Kasemir
  */
 @SuppressWarnings("nls")
-public class PVAShort extends PVAData
+public class PVAShort extends PVANumber
 {
     private final boolean unsigned;
     private volatile short value;
@@ -29,6 +29,12 @@ public class PVAShort extends PVAData
     public boolean isUnsigned()
     {
         return unsigned;
+    }
+
+    @Override
+    public Number getNumber()
+    {
+        return value;
     }
 
     /** @return Current value */

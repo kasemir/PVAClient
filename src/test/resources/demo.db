@@ -5,6 +5,10 @@ record(calc, "ramp")
   field(SCAN, "1 second")
   field(INPA, "ramp")
   field(CALC, "A+1")
+  field(LOW,  "1")
+  field(HIGH, "100")
+  field(LSV,  "MINOR")
+  field(HSV,  "MINOR")
 }
 
 record(calc, "saw")

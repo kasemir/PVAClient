@@ -14,7 +14,7 @@ import java.util.BitSet;
  *   @author Kay Kasemir
  */
 @SuppressWarnings("nls")
-public class PVADouble extends PVAData
+public class PVADouble extends PVANumber
 {
     private volatile double value;
 
@@ -27,6 +27,12 @@ public class PVADouble extends PVAData
     {
         super(name);
         this.value = value;
+    }
+
+    @Override
+    public Number getNumber()
+    {
+        return value;
     }
 
     /** @return Current value */

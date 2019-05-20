@@ -14,7 +14,7 @@ import java.util.BitSet;
  *   @author Kay Kasemir
  */
 @SuppressWarnings("nls")
-public class PVAFloat extends PVAData
+public class PVAFloat extends PVANumber
 {
     public static final byte FIELD_DESC_TYPE = (byte)0b01000000;
 
@@ -47,6 +47,12 @@ public class PVAFloat extends PVAData
     {
         super(name);
         value = Float.NaN;
+    }
+
+    @Override
+    public Number getNumber()
+    {
+        return value;
     }
 
     /** @return Current value */

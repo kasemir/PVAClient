@@ -14,7 +14,7 @@ import java.util.BitSet;
  *   @author Kay Kasemir
  */
 @SuppressWarnings("nls")
-public class PVAInt extends PVAData
+public class PVAInt extends PVANumber
 {
     public static final byte FIELD_DESC_TYPE = (byte)0b00100000;
 
@@ -83,6 +83,12 @@ public class PVAInt extends PVAData
     public boolean isUnsigned()
     {
         return unsigned;
+    }
+
+    @Override
+    public Number getNumber()
+    {
+        return value;
     }
 
     /** @return Current value */
