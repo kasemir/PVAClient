@@ -227,6 +227,12 @@ public class PVAStructure extends PVADataWithID
         }
     }
 
+    /** @return Structure elements */
+    public List<PVAData> get()
+    {
+        return Collections.unmodifiableList(elements);
+    }
+
     /** Get structure element by name
      *
      *  <p>Performs shallow search of this structure,
@@ -384,7 +390,7 @@ public class PVAStructure extends PVADataWithID
             element.formatType(level+1, buffer);
         }
     }
-    
+
     /** Check if structure is time_t, enum_t, alarm_t, ..
      *  @param buffer where detail is added
      */
@@ -396,7 +402,7 @@ public class PVAStructure extends PVADataWithID
             buffer.append(" [").append(alarm).append("]");
             return;
         }
-        
+
         final Instant time = PVAStructures.getTime(this);
         if (time != null)
         {
@@ -404,11 +410,11 @@ public class PVAStructure extends PVADataWithID
             buffer.append(" [").append(local.toString().replace('T', ' ')).append("]");
             return;
         }
-        
+
         final String label = PVAStructures.getEnum(this);
         if (label != null)
             buffer.append(" [").append(label).append("]");
-        
+
     }
 
     @Override
@@ -429,4 +435,3 @@ public class PVAStructure extends PVADataWithID
     }
 }
 
-    
