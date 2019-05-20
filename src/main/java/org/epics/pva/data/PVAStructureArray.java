@@ -48,6 +48,11 @@ public class PVAStructureArray extends PVADataWithID
         this.element_type = element_type;
     }
 
+    public PVAStructure[] get()
+    {
+        return elements;
+    }
+
     @Override
     public void setValue(final Object new_value) throws Exception
     {

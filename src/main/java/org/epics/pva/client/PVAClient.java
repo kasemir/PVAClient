@@ -111,6 +111,7 @@ public class PVAClient
 
     void forgetChannel(final ClientChannel channel)
     {
+        // TODO: Need to stop search when channel is closed
         channels_by_id.remove(channel.getId());
     }
 

@@ -28,6 +28,11 @@ public class PVAny extends PVAData
         super(name);
     }
 
+    public PVAData get()
+    {
+        return value;
+    }
+
     @Override
     public void setValue(final Object new_value) throws Exception
     {

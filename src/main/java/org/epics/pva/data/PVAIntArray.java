@@ -26,6 +26,12 @@ public class PVAIntArray extends PVAData
         this.unsigned = unsigned;
     }
 
+    /** @return Is value unsigned? */
+    public boolean isUnsigned()
+    {
+        return unsigned;
+    }
+
     /** @return Current value */
     public int[] get()
     {
