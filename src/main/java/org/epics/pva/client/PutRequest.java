@@ -139,7 +139,7 @@ class PutRequest extends CompletableFuture<Void> implements RequestEncoder, Resp
         final byte subcmd = buffer.get();
         PVAStatus status = PVAStatus.decode(buffer);
         if (! status.isSuccess())
-            fail(new Exception("Put Response: " + status));
+            throw new Exception(channel + " Put Response for " + request + ": " + status);
 
         if (subcmd == GetRequest.INIT)
         {

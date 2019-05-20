@@ -106,7 +106,7 @@ class MonitorRequest implements RequestEncoder, ResponseHandler
         {
             PVAStatus status = PVAStatus.decode(buffer);
             if (! status.isSuccess())
-                throw new Exception("Monitor Response: " + status);
+                throw new Exception(channel + " Monitor Response for " + request + ": " + status);
 
             if (subcmd == GetRequest.INIT)
             {

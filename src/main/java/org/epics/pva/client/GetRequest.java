@@ -107,7 +107,7 @@ class GetRequest extends CompletableFuture<PVAStructure> implements RequestEncod
         final byte subcmd = buffer.get();
         PVAStatus status = PVAStatus.decode(buffer);
         if (! status.isSuccess())
-            throw new Exception("Get Response: " + status);
+            throw new Exception(channel + " Get Response for " + request + ": " + status);
 
         if (subcmd == GetRequest.INIT)
         {
