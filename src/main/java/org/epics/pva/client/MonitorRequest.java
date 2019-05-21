@@ -139,6 +139,13 @@ class MonitorRequest implements RequestEncoder, ResponseHandler
         }
         else
         {   // Value update
+            if (channel.getState() != ClientChannelState.CONNECTED)
+            {
+                logger.log(Level.WARNING,
+                           () -> "Received unexpected monitor #" + request_id +
+                                 " update for " + channel);
+                return;
+            }
             logger.log(Level.FINE,
                        () -> "Received monitor #" + request_id +
                              " update for " + channel);
