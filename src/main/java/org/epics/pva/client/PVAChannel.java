@@ -44,7 +44,7 @@ public class PVAChannel
     private final AtomicReference<ClientChannelState> state = new AtomicReference<>(ClientChannelState.INIT);
 
     /** TCP Handler, set by PVAClient */
-    volatile TCPHandler tcp = null;
+    final AtomicReference<TCPHandler> tcp = new AtomicReference<>();
 
     PVAChannel(final PVAClient client, final String name, final ClientChannelListener listener)
     {
@@ -60,10 +60,10 @@ public class PVAChannel
 
     TCPHandler getTCP() throws Exception
     {
-        final TCPHandler copy = tcp;
+        final TCPHandler copy = tcp.get();
         if (copy == null)
             throw new Exception("Channel '" + name + "' is not connected");
-        return tcp;
+        return copy;
     }
 
     /** @return Client channel ID */
@@ -125,15 +125,25 @@ public class PVAChannel
         }
     }
 
-    void createOnServer(final TCPHandler tcp)
+    /** Register channel on server
+     *
+     *  <p>Asks server to create channel
+     *  on this TCP connection.
+     *
+     *  @param tcp {@link TCPHandler}
+     */
+    void registerWithServer(final TCPHandler tcp)
     {
-        this.tcp = tcp;
+        this.tcp.set(tcp);
         // Enqueue request to create channel.
         // TCPHandler will perform it when connected,
         // or right away if it is already connected.
         tcp.submit(new CreateChannelRequest(this));
     }
 
+    /** Called when CreateChannelRequest succeeds
+     *  @param sid Server ID for this channel
+     */
     void completeConnection(final int sid)
     {
         if (state.compareAndSet(ClientChannelState.FOUND, ClientChannelState.CONNECTED))
@@ -149,9 +159,10 @@ public class PVAChannel
         // Else: Channel was destroyed or closed, ignore the late connection
     }
 
+    /** Connection lost, detach from {@link TCPHandler} */
     void resetConnection()
     {
-        tcp = null;
+        tcp.set(null);
         setState(ClientChannelState.INIT);
     }
 
@@ -262,7 +273,7 @@ public class PVAChannel
 
         // Try to destroy channel on server,
         // but depending on situation that may no longer reach the server
-        final TCPHandler safe = tcp;
+        final TCPHandler safe = tcp.get();
         if (safe != null)
             safe.submit(new DestroyChannelRequest(this));
     }

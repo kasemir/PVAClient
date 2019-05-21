@@ -43,6 +43,10 @@ public class PVAClient
     final ChannelSearch search;
 
     /** Channels by client ID */
+    // For now this is the only list of channels.
+    // Usage:
+    // * Get channel by client ID: Hashed, fast
+    // * Loop over all values, find TCPHandler for channel: Linear search, yuck
     private final ConcurrentHashMap<Integer, PVAChannel> channels_by_id = new ConcurrentHashMap<>();
 
     /** TCP handlers by server address */
@@ -109,24 +113,34 @@ public class PVAClient
         return channels_by_id.get(cid);
     }
 
+    /** Forget about a channel
+     *
+     *  <p>Called when server confirmed that channel has been destroyed.
+     *  Removes channel from ID map, so it will no longer be
+     *  recognized.
+     *
+     *  <p>If this was the last channel on a TCP connection,
+     *  the {@link TCPHandler} is closed.
+     *
+     *  @param channel Channel to forget
+     */
     void forgetChannel(final PVAChannel channel)
     {
         channels_by_id.remove(channel.getId());
 
-        final TCPHandler tcp = channel.tcp;
-
         // Did channel have a connection?
+        final TCPHandler tcp = channel.tcp.get();
         if (tcp == null)
             return;
 
         // Is any other channel using that connection?
         for (PVAChannel other : channels_by_id.values())
-            if (other.tcp == tcp)
+            if (other.tcp.get() == tcp)
                 return;
 
-        // TODO Close the connection?
-//        tcp_handlers.remove(tcp.getAddress());
-//        tcp.close(false);
+        // Close the connection
+        tcp_handlers.remove(tcp.getAddress());
+        tcp.close(false);
     }
 
     private void handleBeacon(final InetSocketAddress server, final Guid guid, final int changes)
@@ -171,7 +185,7 @@ public class PVAClient
             return null;
         });
 
-        channel.createOnServer(tcp);
+        channel.registerWithServer(tcp);
     }
 
     /** Called by {@link TCPHandler} when connection is lost
