@@ -17,9 +17,9 @@ import org.epics.pva.PVAHeader;
 @SuppressWarnings("nls")
 class DestroyChannelRequest implements RequestEncoder
 {
-    private final ClientChannel channel;
+    private final PVAChannel channel;
 
-    public DestroyChannelRequest(final ClientChannel channel)
+    public DestroyChannelRequest(final PVAChannel channel)
     {
         this.channel = channel;
     }
@@ -30,7 +30,9 @@ class DestroyChannelRequest implements RequestEncoder
         logger.log(Level.FINE, () -> "Sending destroy channel request for " + channel);
 
         PVAHeader.encodeMessageHeader(buffer, PVAHeader.FLAG_NONE, PVAHeader.CMD_DESTROY_CHANNEL, 4+4);
-        buffer.putInt(channel.getId());
+        // Protocol description claims CID followed by SID,
+        // but as of May 2019 both the C++ and Java server expect SID, CID
         buffer.putInt(channel.sid);
+        buffer.putInt(channel.getId());
     }
 }

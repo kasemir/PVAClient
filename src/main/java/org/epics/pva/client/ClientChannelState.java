@@ -7,7 +7,7 @@
  ******************************************************************************/
 package org.epics.pva.client;
 
-/** State of a {@link ClientChannel}
+/** State of a {@link PVAChannel}
  *  @author Kay Kasemir
  */
 public enum ClientChannelState

@@ -18,9 +18,9 @@ import org.epics.pva.data.PVAString;
 @SuppressWarnings("nls")
 class CreateChannelRequest implements RequestEncoder
 {
-    private final ClientChannel channel;
+    private final PVAChannel channel;
 
-    public CreateChannelRequest(final ClientChannel channel)
+    public CreateChannelRequest(final PVAChannel channel)
     {
         this.channel = channel;
     }

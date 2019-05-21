@@ -573,7 +573,7 @@ class TCPHandler
         final int sid = buffer.getInt();
         final PVAStatus status = PVAStatus.decode(buffer);
 
-        final ClientChannel channel = client.getChannel(cid);
+        final PVAChannel channel = client.getChannel(cid);
         if (channel == null)
         {
             logger.log(Level.WARNING, this + " received create channel response for unknown channel ID " + cid);
@@ -599,7 +599,7 @@ class TCPHandler
         final int cid = buffer.getInt();
         final int sid = buffer.getInt();
 
-        final ClientChannel channel = client.getChannel(cid);
+        final PVAChannel channel = client.getChannel(cid);
         if (channel == null)
         {
             logger.log(Level.WARNING, this + " received destroy channel response for unknown channel ID " + cid);

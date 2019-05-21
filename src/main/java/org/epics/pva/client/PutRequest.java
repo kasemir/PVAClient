@@ -26,7 +26,7 @@ class PutRequest extends CompletableFuture<Void> implements RequestEncoder, Resp
     /** Sub command to write value */
     private static final byte PUT = 0;
 
-    private final ClientChannel channel;
+    private final PVAChannel channel;
 
     private final String request;
 
@@ -40,13 +40,13 @@ class PutRequest extends CompletableFuture<Void> implements RequestEncoder, Resp
     private volatile boolean init = true;
 
     /** Request to write channel's value
-     *  @param channel {@link ClientChannel}
+     *  @param channel {@link PVAChannel}
      *  @param request Request for element to write, e.g. "field(value)"
      *  @param new_value Value to write.
      *                   Must be accepted by {@link PVAData#setValue(Object)}
      *                   for the requested field.
      */
-    public PutRequest(final ClientChannel channel, final String request, final Object new_value)
+    public PutRequest(final PVAChannel channel, final String request, final Object new_value)
     {
         this.channel = channel;
         this.request = request;

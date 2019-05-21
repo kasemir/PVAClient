@@ -27,7 +27,7 @@ import org.epics.pva.data.PVAStructure;
  *  @author Kay Kasemir
  */
 @SuppressWarnings("nls")
-public class ClientChannel
+public class PVAChannel
 {
     private static final AtomicInteger IDs = new AtomicInteger();
 
@@ -46,7 +46,7 @@ public class ClientChannel
     /** TCP Handler, set by PVAClient */
     volatile TCPHandler tcp = null;
 
-    ClientChannel(final PVAClient client, final String name, final ClientChannelListener listener)
+    PVAChannel(final PVAClient client, final String name, final ClientChannelListener listener)
     {
         this.client = client;
         this.name = name;
@@ -267,6 +267,6 @@ public class ClientChannel
     @Override
     public String toString()
     {
-        return "'" + name + "' [" + id + ", " + state.get() + "]";
+        return "'" + name + "' [CID " + id + ", SID " + sid + " " + state.get() + "]";
     }
 }

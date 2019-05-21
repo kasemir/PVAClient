@@ -44,9 +44,9 @@ public class ChannelSearch
     private class SearchedChannel
     {
         final AtomicInteger search_counter;
-        final ClientChannel channel;
+        final PVAChannel channel;
 
-        SearchedChannel(final ClientChannel channel)
+        SearchedChannel(final PVAChannel channel)
         {
             // Counter of 0 means the next regular search will increment
             // to 1 (no search), then 2 (power of two -> search).
@@ -139,7 +139,7 @@ public class ChannelSearch
     /** @param channel Channel that should be searched
      *  @param now Start searching as soon as possible, or delay?
      */
-    public void register(final ClientChannel channel, final boolean now)
+    public void register(final PVAChannel channel, final boolean now)
     {
         logger.log(Level.FINE, () -> "Register search for " + channel.getName() + " " + channel.getId());
         channel.setState(ClientChannelState.SEARCHING);
@@ -151,9 +151,9 @@ public class ChannelSearch
 
     /** Stop searching for channel
      *  @param channel_id
-     *  @return {@link ClientChannel}, <code>null</code> when channel wasn't searched any more
+     *  @return {@link PVAChannel}, <code>null</code> when channel wasn't searched any more
      */
-    public ClientChannel unregister(final int channel_id)
+    public PVAChannel unregister(final int channel_id)
     {
         final SearchedChannel searched = searched_channels.remove(channel_id);
         if (searched != null)
@@ -202,7 +202,7 @@ public class ChannelSearch
         }
     }
 
-    private void search(final ClientChannel channel)
+    private void search(final PVAChannel channel)
     {
         // Search is invoked for new SearchedChannel(channel, now)
         // as well as by regular, timed search.

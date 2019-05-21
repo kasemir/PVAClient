@@ -10,7 +10,7 @@ package org.epics.pva;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.LogManager;
 
-import org.epics.pva.client.ClientChannel;
+import org.epics.pva.client.PVAChannel;
 import org.epics.pva.client.ClientChannelListener;
 import org.epics.pva.client.ClientChannelState;
 import org.epics.pva.client.MonitorListener;
@@ -45,7 +45,7 @@ public class NeutronsDemo
 
         // Connect
         final ClientChannelListener channel_listener = (channel, state) -> System.out.println(channel);
-        final ClientChannel ch = pva.getChannel("neutrons", channel_listener);
+        final PVAChannel ch = pva.getChannel("neutrons", channel_listener);
         while (ch.getState() != ClientChannelState.CONNECTED)
             TimeUnit.MILLISECONDS.sleep(100);
 

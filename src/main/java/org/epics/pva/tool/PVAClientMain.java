@@ -18,7 +18,7 @@ import java.util.logging.LogManager;
 import java.util.logging.Logger;
 
 import org.epics.pva.PVASettings;
-import org.epics.pva.client.ClientChannel;
+import org.epics.pva.client.PVAChannel;
 import org.epics.pva.client.ClientChannelState;
 import org.epics.pva.client.MonitorListener;
 import org.epics.pva.client.PVAClient;
@@ -62,7 +62,7 @@ public class PVAClientMain
     private static void info(final List<String> names) throws Exception
     {
         final PVAClient pva = new PVAClient();
-        final List<ClientChannel> pvs = new ArrayList<>();
+        final List<PVAChannel> pvs = new ArrayList<>();
         for (String name : names)
             pvs.add(pva.getChannel(name, (ch, state) -> {}));
 
@@ -70,10 +70,10 @@ public class PVAClientMain
         final long end = System.currentTimeMillis() + timeout_ms;
         while (! pvs.isEmpty())
         {
-            final Iterator<ClientChannel> iter = pvs.iterator();
+            final Iterator<PVAChannel> iter = pvs.iterator();
             while (iter.hasNext())
             {
-                final ClientChannel pv = iter.next();
+                final PVAChannel pv = iter.next();
                 if (pv.getState() == ClientChannelState.CONNECTED)
                 {
                     final PVAData data = pv.info(request).get(timeout_ms, TimeUnit.MILLISECONDS);
@@ -91,7 +91,7 @@ public class PVAClientMain
                 return;
             }
         }
-        for (ClientChannel pv : pvs)
+        for (PVAChannel pv : pvs)
             pv.close();
         pva.close();
     }
@@ -103,7 +103,7 @@ public class PVAClientMain
     private static void get(final List<String> names) throws Exception
     {
         final PVAClient pva = new PVAClient();
-        final List<ClientChannel> pvs = new ArrayList<>();
+        final List<PVAChannel> pvs = new ArrayList<>();
         for (String name : names)
             pvs.add(pva.getChannel(name, (ch, state) -> {}));
 
@@ -111,10 +111,10 @@ public class PVAClientMain
         final long end = System.currentTimeMillis() + timeout_ms;
         while (! pvs.isEmpty())
         {
-            final Iterator<ClientChannel> iter = pvs.iterator();
+            final Iterator<PVAChannel> iter = pvs.iterator();
             while (iter.hasNext())
             {
-                final ClientChannel pv = iter.next();
+                final PVAChannel pv = iter.next();
                 if (pv.getState() == ClientChannelState.CONNECTED)
                 {
                     final PVAData data = pv.read(request).get(timeout_ms, TimeUnit.MILLISECONDS);
@@ -132,7 +132,7 @@ public class PVAClientMain
                 return;
             }
         }
-        for (ClientChannel pv : pvs)
+        for (PVAChannel pv : pvs)
             pv.close();
         pva.close();
     }
@@ -182,7 +182,7 @@ public class PVAClientMain
     {
         final PVAClient pva = new PVAClient();
         final CountDownLatch connected = new CountDownLatch(1);
-        final ClientChannel pv = pva.getChannel(name, (ch, state) ->
+        final PVAChannel pv = pva.getChannel(name, (ch, state) ->
         {
             if (state == ClientChannelState.CONNECTED)
                 connected.countDown();

@@ -28,7 +28,7 @@ class MonitorRequest implements RequestEncoder, ResponseHandler
     /** Sub command to stop/pause */
     private static final byte STOP = 0x04;
 
-    private final ClientChannel channel;
+    private final PVAChannel channel;
 
     private final String request;
 
@@ -43,7 +43,7 @@ class MonitorRequest implements RequestEncoder, ResponseHandler
 
     private volatile PVAStructure data;
 
-    public MonitorRequest(final ClientChannel channel, final String request, final MonitorListener listener) throws Exception
+    public MonitorRequest(final PVAChannel channel, final String request, final MonitorListener listener) throws Exception
     {
         this.channel = channel;
         this.request = request;

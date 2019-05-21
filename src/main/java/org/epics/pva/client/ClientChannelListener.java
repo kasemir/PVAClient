@@ -7,7 +7,7 @@
  ******************************************************************************/
 package org.epics.pva.client;
 
-/** Listener to a {@link ClientChannel}
+/** Listener to a {@link PVAChannel}
  *
  *  @author Kay Kasemir
  */
@@ -18,15 +18,15 @@ public interface ClientChannelListener
      *  <p>Will be called as soon as possible, i.e. within
      *  the thread that handles the network communication.
      *
-     *  <p>Client code may invoke {@link ClientChannel#read()}
-     *  or {@link ClientChannel#subscribe()} to initiate
+     *  <p>Client code may invoke {@link PVAChannel#read()}
+     *  or {@link PVAChannel#subscribe()} to initiate
      *  reading data or to start a subscription, but
      *  client code <b>must not</b> block,
-     *  i.e. awaiting the result of {@link ClientChannel#read()}
+     *  i.e. awaiting the result of {@link PVAChannel#read()}
      *  is not permitted within this call.
      *
      *  @param channel
      *  @param state
      */
-    public void channelStateChanged(ClientChannel channel, ClientChannelState state);
+    public void channelStateChanged(PVAChannel channel, ClientChannelState state);
 }

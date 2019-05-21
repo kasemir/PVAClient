@@ -22,7 +22,7 @@ import org.epics.pva.data.PVAStructure;
 @SuppressWarnings("nls")
 class GetTypeRequest extends CompletableFuture<PVAStructure> implements RequestEncoder, ResponseHandler
 {
-    private final ClientChannel channel;
+    private final PVAChannel channel;
 
     private final String subfield;
 
@@ -31,10 +31,10 @@ class GetTypeRequest extends CompletableFuture<PVAStructure> implements RequestE
     private volatile PVAStructure data;
 
     /** Request to fetch a channel's data type
-     *  @param channel {@link ClientChannel}
+     *  @param channel {@link PVAChannel}
      *  @param subfield Field name, "" for all fields
      */
-    public GetTypeRequest(final ClientChannel channel, final String subfield)
+    public GetTypeRequest(final PVAChannel channel, final String subfield)
     {
         this.channel = channel;
         this.subfield = subfield;

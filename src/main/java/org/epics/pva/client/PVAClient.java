@@ -43,7 +43,7 @@ public class PVAClient
     final ChannelSearch search;
 
     /** Channels by client ID */
-    private final ConcurrentHashMap<Integer, ClientChannel> channels_by_id = new ConcurrentHashMap<>();
+    private final ConcurrentHashMap<Integer, PVAChannel> channels_by_id = new ConcurrentHashMap<>();
 
     /** TCP handlers by server address */
     private final ConcurrentHashMap<InetSocketAddress, TCPHandler> tcp_handlers = new ConcurrentHashMap<>();
@@ -77,9 +77,9 @@ public class PVAClient
     *  <p>Starts search.
     *
     *  @param channel_name
-    *  @return {@link ClientChannel}
+    *  @return {@link PVAChannel}
     */
-    public ClientChannel getChannel(final String channel_name)
+    public PVAChannel getChannel(final String channel_name)
     {
         return getChannel(channel_name, DEFAULT_CHANNEL_LISTENER);
     }
@@ -90,11 +90,11 @@ public class PVAClient
      *
      *  @param channel_name
      *  @param listener {@link ClientChannelListener}
-     *  @return {@link ClientChannel}
+     *  @return {@link PVAChannel}
      */
-    public ClientChannel getChannel(final String channel_name, final ClientChannelListener listener)
+    public PVAChannel getChannel(final String channel_name, final ClientChannelListener listener)
     {
-        final ClientChannel channel = new ClientChannel(this, channel_name, listener);
+        final PVAChannel channel = new PVAChannel(this, channel_name, listener);
         channels_by_id.putIfAbsent(channel.getId(), channel);
         search.register(channel, true);
         return channel;
@@ -102,14 +102,14 @@ public class PVAClient
 
     /** Get channel by client ID
      *  @param cid Channel ID, using client's ID
-     *  @return {@link ClientChannel}, may be <code>null</code>
+     *  @return {@link PVAChannel}, may be <code>null</code>
      */
-    ClientChannel getChannel(final int cid)
+    PVAChannel getChannel(final int cid)
     {
         return channels_by_id.get(cid);
     }
 
-    void forgetChannel(final ClientChannel channel)
+    void forgetChannel(final PVAChannel channel)
     {
         channels_by_id.remove(channel.getId());
 
@@ -120,7 +120,7 @@ public class PVAClient
             return;
 
         // Is any other channel using that connection?
-        for (ClientChannel other : channels_by_id.values())
+        for (PVAChannel other : channels_by_id.values())
             if (other.tcp == tcp)
                 return;
 
@@ -151,7 +151,7 @@ public class PVAClient
 
     private void handleSearchResponse(final int channel_id, final InetSocketAddress server, final Guid guid)
     {
-        final ClientChannel channel = search.unregister(channel_id);
+        final PVAChannel channel = search.unregister(channel_id);
         // Late reply, we already deleted that channel
         if (channel == null)
             return;
@@ -185,7 +185,7 @@ public class PVAClient
             logger.log(Level.WARNING, "Closed unknown " + tcp, new Exception("Call stack"));
 
         // Reset all channels that used the connection
-        for (ClientChannel channel : channels_by_id.values())
+        for (PVAChannel channel : channels_by_id.values())
         {
             try
             {

@@ -13,7 +13,7 @@ import java.util.logging.Level;
 import java.util.logging.LogManager;
 import java.util.logging.Logger;
 
-import org.epics.pva.client.ClientChannel;
+import org.epics.pva.client.PVAChannel;
 import org.epics.pva.client.ClientChannelListener;
 import org.epics.pva.client.ClientChannelState;
 import org.epics.pva.client.PVAClient;
@@ -61,8 +61,8 @@ public class BeaconDemo
             if (state == ClientChannelState.CONNECTED)
                 connected.countDown();
         };
-        final ClientChannel ch1 = pva.getChannel("ramp", listener);
-        final ClientChannel ch2 = pva.getChannel("bogus", listener);
+        final PVAChannel ch1 = pva.getChannel("ramp", listener);
+        final PVAChannel ch2 = pva.getChannel("bogus", listener);
 
         System.out.println("Waiting forever to connect to 'bogus' channel");
         connected.await();

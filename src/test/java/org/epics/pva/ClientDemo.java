@@ -14,7 +14,7 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.LogManager;
 
-import org.epics.pva.client.ClientChannel;
+import org.epics.pva.client.PVAChannel;
 import org.epics.pva.client.ClientChannelListener;
 import org.epics.pva.client.ClientChannelState;
 import org.epics.pva.client.MonitorListener;
@@ -57,8 +57,8 @@ public class ClientDemo
             if (state == ClientChannelState.CONNECTED)
                 connected.countDown();
         };
-        final ClientChannel ch1 = pva.getChannel("ramp", listener);
-        final ClientChannel ch2 = pva.getChannel("saw", listener);
+        final PVAChannel ch1 = pva.getChannel("ramp", listener);
+        final PVAChannel ch2 = pva.getChannel("saw", listener);
         assertTrue(connected.await(5, TimeUnit.SECONDS));
 
         // Close channels
@@ -76,7 +76,7 @@ public class ClientDemo
         final PVAClient pva = new PVAClient();
 
         // Connect
-        final ClientChannel ch = pva.getChannel("ramp");
+        final PVAChannel ch = pva.getChannel("ramp");
         if (ch.awaitConnection(5, TimeUnit.SECONDS))
         {
             // Get data
@@ -105,8 +105,8 @@ public class ClientDemo
             if (state == ClientChannelState.CONNECTED)
                 connected.countDown();
         };
-        final ClientChannel ch1 = pva.getChannel("ramp", listener);
-        final ClientChannel ch2 = pva.getChannel("saw", listener);
+        final PVAChannel ch1 = pva.getChannel("ramp", listener);
+        final PVAChannel ch2 = pva.getChannel("saw", listener);
         assertTrue(connected.await(5, TimeUnit.SECONDS));
 
         // Get data
@@ -131,7 +131,7 @@ public class ClientDemo
         final PVAClient pva = new PVAClient();
 
         // Connect to one or more channels
-        final ClientChannel channel = pva.getChannel("ramp");
+        final PVAChannel channel = pva.getChannel("ramp");
         channel.awaitConnection(5, TimeUnit.SECONDS);
 
         // Write data
@@ -148,7 +148,7 @@ public class ClientDemo
     public void testPutEnum() throws Exception
     {
         final PVAClient pva = new PVAClient();
-        final ClientChannel channel = pva.getChannel("ramp.SCAN");
+        final PVAChannel channel = pva.getChannel("ramp.SCAN");
         channel.awaitConnection(5, TimeUnit.SECONDS);
 
         // Set SCAN to ".1 second" and back to "1 second"
@@ -171,8 +171,8 @@ public class ClientDemo
         {
             System.out.println(ch.getName() + ": " + state);
         };
-        final ClientChannel ch1 = pva.getChannel("ramp", channel_listener);
-        final ClientChannel ch2 = pva.getChannel("saw", channel_listener);
+        final PVAChannel ch1 = pva.getChannel("ramp", channel_listener);
+        final PVAChannel ch2 = pva.getChannel("saw", channel_listener);
 
         // Wait until channels connect by polling state
         while (ch1.getState() != ClientChannelState.CONNECTED  &&

@@ -28,7 +28,7 @@ public interface MonitorListener
      *  @param changes Elements of the structure that changed
      *  @param data Complete data, merges existing value and changes
      */
-    public void handleMonitor(final ClientChannel channel,
+    public void handleMonitor(final PVAChannel channel,
                               final BitSet changes,
                               final PVAStructure data);
 }

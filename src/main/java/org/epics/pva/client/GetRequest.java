@@ -32,7 +32,7 @@ class GetRequest extends CompletableFuture<PVAStructure> implements RequestEncod
     /** Sub command delete the request with last GET/PUT/.. */
     static final byte DESTROY = 0x10;
 
-    private final ClientChannel channel;
+    private final PVAChannel channel;
 
     private final String request;
 
@@ -44,10 +44,10 @@ class GetRequest extends CompletableFuture<PVAStructure> implements RequestEncod
     private volatile PVAStructure data;
 
     /** Request to read channel's value
-     *  @param channel {@link ClientChannel}
+     *  @param channel {@link PVAChannel}
      *  @param request Request, "" for all fields, or "field_a, field_b.subfield"
      */
-    public GetRequest(final ClientChannel channel, final String request)
+    public GetRequest(final PVAChannel channel, final String request)
     {
         this.channel = channel;
         this.request = request;
