@@ -54,6 +54,8 @@ public class PVAShort extends PVANumber
     {
         if (new_value instanceof Number)
             set(((Number) new_value).shortValue());
+        else if (new_value instanceof String)
+            set(parseString(new_value.toString()).shortValue());
         else
             throw new Exception("Cannot set " + formatType() + " to " + new_value);
     }

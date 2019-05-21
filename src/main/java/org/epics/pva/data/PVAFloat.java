@@ -72,6 +72,8 @@ public class PVAFloat extends PVANumber
     {
         if (new_value instanceof Number)
             set(((Number) new_value).floatValue());
+        else if (new_value instanceof String)
+            set(parseString(new_value.toString()).floatValue());
         else
             throw new Exception("Cannot set " + formatType() + " to " + new_value);
     }

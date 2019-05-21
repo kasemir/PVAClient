@@ -54,6 +54,8 @@ public class PVABool extends PVAData
             set(((Boolean) new_value));
         else if (new_value instanceof Number)
             set(((Number) new_value).intValue() != 0);
+        else if (new_value instanceof String)
+            set(Boolean.parseBoolean(new_value.toString().toLowerCase()));
         else
             throw new Exception("Cannot set " + formatType() + " to " + new_value);
     }

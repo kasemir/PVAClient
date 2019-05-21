@@ -59,6 +59,8 @@ public class PVALong extends PVANumber
     {
         if (new_value instanceof Number)
             set(((Number) new_value).longValue());
+        else if (new_value instanceof String)
+            set(parseString(new_value.toString()).longValue());
         else
             throw new Exception("Cannot set " + formatType() + " to " + new_value);
     }
