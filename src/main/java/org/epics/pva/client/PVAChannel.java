@@ -235,6 +235,9 @@ public class PVAChannel
             throw new Exception("Invalid monitor request ID " + subscription);
     }
 
+    /** Called when server confirms channel has been destroyed
+     *  @param sid Server ID for channel
+     */
     void channelDestroyed(final int sid)
     {
         // Channel closure confirmed by server
