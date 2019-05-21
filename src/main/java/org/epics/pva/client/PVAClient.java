@@ -43,10 +43,6 @@ public class PVAClient
     final ChannelSearch search;
 
     /** Channels by client ID */
-    // For now this is the only list of channels.
-    // Usage:
-    // * Get channel by client ID: Hashed, fast
-    // * Loop over all values, find TCPHandler for channel: Linear search, yuck
     private final ConcurrentHashMap<Integer, PVAChannel> channels_by_id = new ConcurrentHashMap<>();
 
     /** TCP handlers by server address */
@@ -133,10 +129,11 @@ public class PVAClient
         if (tcp == null)
             return;
 
+        tcp.removeChannel(channel);
+
         // Is any other channel using that connection?
-        for (PVAChannel other : channels_by_id.values())
-            if (other.tcp.get() == tcp)
-                return;
+        if (! tcp.getChannels().isEmpty())
+            return;
 
         // Close the connection
         tcp_handlers.remove(tcp.getAddress());
@@ -199,16 +196,13 @@ public class PVAClient
             logger.log(Level.WARNING, "Closed unknown " + tcp, new Exception("Call stack"));
 
         // Reset all channels that used the connection
-        for (PVAChannel channel : channels_by_id.values())
+        for (PVAChannel channel : tcp.getChannels())
         {
             try
             {
-                if (channel.getTCP() == tcp)
-                {
-                    channel.resetConnection();
-                    // Search again soon
-                    search.register(channel, false);
-                }
+                channel.resetConnection();
+                // Search again soon
+                search.register(channel, false);
             }
             catch (Exception ex)
             {

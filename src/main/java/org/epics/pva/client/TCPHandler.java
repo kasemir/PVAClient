@@ -16,9 +16,11 @@ import java.nio.ByteOrder;
 import java.nio.channels.SocketChannel;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.List;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
@@ -46,6 +48,9 @@ class TCPHandler
 
     /** Client context */
     private final PVAClient client;
+
+    /** Channels that use this connection */
+    private final CopyOnWriteArrayList<PVAChannel> channels = new CopyOnWriteArrayList<>();
 
     /** Server's GUID */
     private final Guid guid;
@@ -132,7 +137,7 @@ class TCPHandler
 
     public TCPHandler(final PVAClient client, final InetSocketAddress address, final Guid guid) throws Exception
     {
-        logger.log(Level.FINE, () -> "TCPHandler " + guid + " for " + address + " created.");
+        logger.log(Level.FINE, () -> "TCPHandler " + guid + " for " + address + " created ============================");
         this.client = client;
         this.guid = guid;
         socket = SocketChannel.open(address);
@@ -150,6 +155,24 @@ class TCPHandler
         // Don't start the send thread, yet.
         // To prevent sending messages before the server is ready,
         // it's started when server confirms the connection.
+    }
+
+    /** @param channel Channel that uses this TCP connection */
+    void addChannel(final PVAChannel channel)
+    {
+        channels.add(channel);
+    }
+
+    /** @param channel Channel that no longer uses this TCP connection */
+    void removeChannel(final PVAChannel channel)
+    {
+        channels.remove(channel);
+    }
+
+    /** @return Channels that use this connection */
+    public Collection<PVAChannel> getChannels()
+    {
+        return channels;
     }
 
     /** @return Guid of server */
@@ -706,7 +729,7 @@ class TCPHandler
         {
             logger.log(Level.WARNING, "Cannot stop " + receive_thread, ex);
         }
-        logger.log(Level.FINE, () -> this + " closed.");
+        logger.log(Level.FINE, () -> this + " closed  ============================");
     }
 
     @Override

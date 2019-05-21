@@ -134,7 +134,11 @@ public class PVAChannel
      */
     void registerWithServer(final TCPHandler tcp)
     {
-        this.tcp.set(tcp);
+        final TCPHandler old = this.tcp.getAndSet(tcp);
+        if (old != null)
+            logger.log(Level.WARNING, this + " was already on " + old + ", now added to " + tcp);
+        tcp.addChannel(this);
+
         // Enqueue request to create channel.
         // TCPHandler will perform it when connected,
         // or right away if it is already connected.
@@ -162,7 +166,9 @@ public class PVAChannel
     /** Connection lost, detach from {@link TCPHandler} */
     void resetConnection()
     {
-        tcp.set(null);
+        final TCPHandler old = tcp.getAndSet(null);
+        if (old != null)
+            old.removeChannel(this);
         setState(ClientChannelState.INIT);
     }
 
