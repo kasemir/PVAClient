@@ -257,14 +257,22 @@ class TCPHandler
                 final RequestEncoder to_send = send_items.take();
                 if (to_send == END_REQUEST)
                     break;
-                to_send.encodeRequest(server_version, send_buffer);
+                try
+                {
+                    to_send.encodeRequest(server_version, send_buffer);
+                }
+                catch (Exception ex)
+                {
+                    logger.log(Level.WARNING, Thread.currentThread().getName() + " request encoding error", ex);
+                    continue;
+                }
                 send_buffer.flip();
                 send(send_buffer);
             }
         }
         catch (Exception ex)
         {
-            logger.log(Level.WARNING, Thread.currentThread().getName() + " error", ex);
+            logger.log(Level.WARNING, Thread.currentThread().getName() + " exits because of error", ex);
         }
         logger.log(Level.FINER, Thread.currentThread().getName() + " done.");
         return null;
