@@ -193,9 +193,10 @@ public class PVAClient
         {
             try
             {
-                channel.resetConnection();
-                // Search again soon
-                search.register(channel, false);
+                // Reset channel, detach from TCP.
+                // If the channel was active, search again soon
+                if (channel.resetConnection())
+                    search.register(channel, false);
             }
             catch (Exception ex)
             {

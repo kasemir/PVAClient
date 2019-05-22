@@ -112,7 +112,11 @@ public class PVAChannel
         return true;
     }
 
-    void setState(final ClientChannelState new_state)
+    /** Set channel state, notify listeners on change
+     *  @param new_state
+     *  @return old state
+     */
+    ClientChannelState setState(final ClientChannelState new_state)
     {
         final ClientChannelState old = state.getAndSet(new_state);
         if (old != new_state)
@@ -123,6 +127,7 @@ public class PVAChannel
             }
             listener.channelStateChanged(this, new_state);
         }
+        return old;
     }
 
     /** Register channel on server
@@ -163,13 +168,17 @@ public class PVAChannel
         // Else: Channel was destroyed or closed, ignore the late connection
     }
 
-    /** Connection lost, detach from {@link TCPHandler} */
-    void resetConnection()
+    /** Connection lost, detach from {@link TCPHandler}
+     *  @return <code>true</code> if the channel was searched or connected,
+     *          <code>false</code> if it was closing or closed
+     */
+    boolean resetConnection()
     {
         final TCPHandler old = tcp.getAndSet(null);
         if (old != null)
             old.removeChannel(this);
-        setState(ClientChannelState.INIT);
+        final ClientChannelState old_state = setState(ClientChannelState.INIT);
+        return ClientChannelState.isActive(old_state);
     }
 
     /** Read (get) channel's type info from server

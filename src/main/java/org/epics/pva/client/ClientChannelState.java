@@ -28,5 +28,13 @@ public enum ClientChannelState
     CLOSING,
 
     /** Channel closing was confirmed by server, cannot be used again */
-    CLOSED
+    CLOSED;
+
+    /** @return <code>true</code> if state is searching, connected, ..,
+     *          <code>false</code> if CLOSING or CLOSED and thus done.
+     */
+    public static boolean isActive(final ClientChannelState state)
+    {
+        return state.ordinal() < CLOSING.ordinal();
+    }
 };
