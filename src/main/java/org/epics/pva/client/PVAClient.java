@@ -115,9 +115,6 @@ public class PVAClient
      *  Removes channel from ID map, so it will no longer be
      *  recognized.
      *
-     *  <p>If this was the last channel on a TCP connection,
-     *  the {@link TCPHandler} is closed.
-     *
      *  @param channel Channel to forget
      */
     void forgetChannel(final PVAChannel channel)
@@ -130,14 +127,6 @@ public class PVAClient
             return;
 
         tcp.removeChannel(channel);
-
-        // Is any other channel using that connection?
-        if (! tcp.getChannels().isEmpty())
-            return;
-
-        // Close the connection
-        tcp_handlers.remove(tcp.getAddress());
-        tcp.close(false);
     }
 
     private void handleBeacon(final InetSocketAddress server, final Guid guid, final int changes)
@@ -185,10 +174,14 @@ public class PVAClient
         channel.registerWithServer(tcp);
     }
 
-    /** Called by {@link TCPHandler} when connection is lost
-     *  @param tcp TCP handler that just lost connection and needs to be closed
+    /** Called by {@link TCPHandler} when connection is lost or closed because unused
+     *
+     *  <p>Client should detach all channels that are still on this connection
+     *  and re-search them, forget the connection and close it.
+     *
+     *  @param tcp TCP handler that needs to be closed
      */
-    void handleConnectionLost(final TCPHandler tcp)
+    void shutdownConnection(final TCPHandler tcp)
     {
         // Forget this connection
         final TCPHandler removed = tcp_handlers.remove(tcp.getAddress());
@@ -211,6 +204,14 @@ public class PVAClient
         }
 
         tcp.close(false);
+    }
+
+    /** Allow in-package test code to check for TCP connections
+     *  @return <code>true</code> if there are still TCP connections
+     */
+    boolean haveTCPConnections()
+    {
+        return ! tcp_handlers.isEmpty();
     }
 
     /** Close all channels and network connections

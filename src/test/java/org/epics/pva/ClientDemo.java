@@ -14,10 +14,10 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.LogManager;
 
-import org.epics.pva.client.PVAChannel;
 import org.epics.pva.client.ClientChannelListener;
 import org.epics.pva.client.ClientChannelState;
 import org.epics.pva.client.MonitorListener;
+import org.epics.pva.client.PVAChannel;
 import org.epics.pva.client.PVAClient;
 import org.epics.pva.data.PVAData;
 import org.epics.pva.data.PVAStructure;

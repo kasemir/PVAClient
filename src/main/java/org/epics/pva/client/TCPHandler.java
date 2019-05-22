@@ -244,15 +244,22 @@ class TCPHandler
         final long idle = System.currentTimeMillis() - last_life_sign;
         if (idle > PVASettings.EPICS_CA_CONN_TMO * 1000)
         {
-            // If idle for full EPICS_CA_CONN_TMO, disconnect and start over
-            logger.log(Level.FINE, () -> this + " idle for " + idle + "ms, closing");
-            client.handleConnectionLost(this);
+            // If silent for full EPICS_CA_CONN_TMO, disconnect and start over
+            logger.log(Level.FINE, () -> this + " silent for " + idle + "ms, closing");
+            client.shutdownConnection(this);
         }
         else if (idle >= PVASettings.EPICS_CA_CONN_TMO * 1000 / 2)
         {
+            if (channels.isEmpty())
+            {   // Connection is idle because no channel uses it. Close!
+                logger.log(Level.FINE, () -> this + " unused for " + idle + "ms, closing");
+                client.shutdownConnection(this);
+                return;
+            }
+
             // With default EPICS_CA_CONN_TMO of 30 seconds,
             // Echo requested every 15 seconds.
-            logger.log(Level.FINE, () -> this + " idle for " + idle + "ms, requesting echo");
+            logger.log(Level.FINE, () -> this + " silent for " + idle + "ms, requesting echo");
             // Skip echo if the send queue already has items to avoid
             // filling queue which isn't emptied anyway.
             if (send_items.isEmpty())
@@ -388,7 +395,7 @@ class TCPHandler
         }
         logger.log(Level.FINER, Thread.currentThread().getName() + " done.");
         if (! closed)
-            client.handleConnectionLost(this);
+            client.shutdownConnection(this);
         return null;
     }
 

@@ -172,7 +172,7 @@ public class ChannelSearch
     {
         for (SearchedChannel searched : searched_channels.values())
         {
-            logger.log(Level.WARNING, () -> "Restart search for " + searched.channel.getName());
+            logger.log(Level.FINE, () -> "Restart search for " + searched.channel.getName());
             searched.search_counter.set(BOOST_SEARCH_COUNT);
             // Not sending search right now:
             //   search(channel);
