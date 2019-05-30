@@ -20,16 +20,22 @@ public class StructureTest
     @Test
     public void testStructure() throws Exception
     {
-        final PVAData time = new PVAStructure("timeStamp", "time_t",
-                                              new PVALong("secondsPastEpoch"),
-                                              new PVAInt("nanoseconds"),
-                                              new PVAInt("userTag"));
+        // Create some structure, a few fields already set
+        final PVAStructure time = new PVAStructure("timeStamp", "time_t",
+                                                   new PVALong("secondsPastEpoch"),
+                                                   new PVAInt("nanoseconds", 42),
+                                                   new PVAInt("userTag"));
+        // Set value of other field in struct 
+        final PVALong sec = time.get("secondsPastEpoch");
+        sec.set(41);
+        
+        // Create some other struct
+        final PVAStructure alarm = new PVAStructure("alarm", "alarm_t",
+                                                    new PVAInt("severity"),
+                                                    new PVAInt("status"),
+                                                    new PVAString("message", "NO_ALARM"));
 
-        final PVAData alarm = new PVAStructure("alarm", "alarm_t",
-                                               new PVAInt("severity"),
-                                               new PVAInt("status"),
-                                               new PVAString("message", "NO_ALARM"));
-
+        // Create top-level data
         final PVAStructure data = new PVAStructure("demo", "NTBogus",
                                                    new PVADouble("value", 3.14),
                                                    time,
