@@ -9,8 +9,9 @@ package org.epics.pva.client;
 
 import static org.epics.pva.PVASettings.logger;
 
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Future;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.logging.Level;
@@ -23,7 +24,11 @@ import org.epics.pva.data.PVAStructure;
  *
  *  <p>Obtained from {@link PVAClient#getChannel()}.
  *  Allows reading and writing a channel's data.
- *
+ *  
+ *  <p>Channel 'connects' automatically.
+ *  A listener will be informed when connection state changes,
+ *  with helpers to await connection or check current connection state.
+ *  
  *  @author Kay Kasemir
  */
 @SuppressWarnings("nls")
@@ -43,6 +48,9 @@ public class PVAChannel
      */
     private final AtomicReference<ClientChannelState> state = new AtomicReference<>(ClientChannelState.INIT);
 
+    /** Completes with <code>true</code> when state == CONNECTED */
+    private CompletableFuture<Boolean> connected = new CompletableFuture<>();
+    
     /** TCP Handler, set by PVAClient */
     final AtomicReference<TCPHandler> tcp = new AtomicReference<>();
 
@@ -83,35 +91,23 @@ public class PVAChannel
     {
         return state.get();
     }
-
-    /** Wait for channel to connect
-     *  @param duration Time to wait
-     *  @param unit Time unit
-     *  @return <code>true</code> if connected, <code>false</code> if timed out
-     */
-    public boolean awaitConnection(final long duration, final TimeUnit unit)
+    
+    /** @return <code>true</code> if channel is connected */
+    public boolean isConnected()
     {
-        final long end = System.currentTimeMillis() + unit.toMillis(duration);
-        while (state.get() != ClientChannelState.CONNECTED)
-        {
-            final long timeout = end - System.currentTimeMillis();
-            if (timeout <= 0)
-                return false;
-            try
-            {
-                synchronized (state)
-                {
-                    state.wait(timeout);
-                }
-            }
-            catch (InterruptedException ex)
-            {
-                return state.get() == ClientChannelState.CONNECTED;
-            }
-        }
-        return true;
+        return getState() == ClientChannelState.CONNECTED;
     }
 
+    /** Wait for channel to connect
+     *  @return {@link Future} to await connection.
+     *          <code>true</code> on success,
+     *          {@link TimeoutException} on timeout.
+     */
+    public CompletableFuture<Boolean> connect()
+    {
+        return connected;
+    }
+    
     /** Set channel state, notify listeners on change
      *  @param new_state
      *  @return old state
@@ -121,6 +117,11 @@ public class PVAChannel
         final ClientChannelState old = state.getAndSet(new_state);
         if (old != new_state)
         {
+            if (new_state == ClientChannelState.CONNECTED)
+                connected.complete(true);
+            else if (old == ClientChannelState.CONNECTED)
+                connected = new CompletableFuture<>();
+            
             synchronized (state)
             {
                 state.notifyAll();
@@ -157,6 +158,7 @@ public class PVAChannel
     {
         if (state.compareAndSet(ClientChannelState.FOUND, ClientChannelState.CONNECTED))
         {
+            connected.complete(true);
             this.sid = sid;
             logger.log(Level.FINE, () -> "Received create channel reply " + this + ", SID " + sid);
             synchronized (state)

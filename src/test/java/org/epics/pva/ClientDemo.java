@@ -8,8 +8,9 @@
 package org.epics.pva;
 
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
-import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.LogManager;
@@ -47,19 +48,11 @@ public class ClientDemo
         // Create a client
         final PVAClient pva = new PVAClient();
 
-        // Counters for connection and close states
-        final CountDownLatch connected = new CountDownLatch(2);
-
-        // Connect to one or more channels
-        final ClientChannelListener listener = (channel, state) ->
-        {
-            System.out.println(channel);
-            if (state == ClientChannelState.CONNECTED)
-                connected.countDown();
-        };
-        final PVAChannel ch1 = pva.getChannel("ramp", listener);
-        final PVAChannel ch2 = pva.getChannel("saw", listener);
-        assertTrue(connected.await(5, TimeUnit.SECONDS));
+        final PVAChannel ch1 = pva.getChannel("ramp");
+        final PVAChannel ch2 = pva.getChannel("saw");
+        CompletableFuture.allOf(ch1.connect(), ch2.connect()).get(5, TimeUnit.SECONDS);
+        assertTrue(ch1.isConnected());
+        assertTrue(ch2.isConnected());
 
         // Close channels
         ch2.close();
@@ -70,6 +63,27 @@ public class ClientDemo
     }
 
     @Test
+    public void testFailedConnection() throws Exception
+    {
+        final PVAClient pva = new PVAClient();
+        final PVAChannel ch = pva.getChannel("bogus");
+        try
+        {
+            ch.connect().get(3, TimeUnit.SECONDS);
+            fail("Connected?!");
+        }
+        catch (Exception ex)
+        {
+            
+        }
+ 
+        ch.close();
+ 
+        pva.close();
+    }
+
+    
+    @Test
     public void testSimplestGet() throws Exception
     {
         // Create a client
@@ -77,12 +91,10 @@ public class ClientDemo
 
         // Connect
         final PVAChannel ch = pva.getChannel("ramp");
-        if (ch.awaitConnection(5, TimeUnit.SECONDS))
-        {
-            // Get data
-            Future<PVAStructure> data = ch.read("");
-            System.out.println(ch.getName() + " = " + data.get());
-        }
+        ch.connect().get(5, TimeUnit.SECONDS);
+        // Get data
+        Future<PVAStructure> data = ch.read("");
+        System.out.println(ch.getName() + " = " + data.get());
 
         // Close
         ch.close();
@@ -95,19 +107,12 @@ public class ClientDemo
         // Create a client
         final PVAClient pva = new PVAClient();
 
-        // Counters for connection and close states
-        final CountDownLatch connected = new CountDownLatch(2);
-
         // Connect to one or more channels
         final ClientChannelListener listener = (channel, state) ->
-        {
             System.out.println(channel);
-            if (state == ClientChannelState.CONNECTED)
-                connected.countDown();
-        };
         final PVAChannel ch1 = pva.getChannel("ramp", listener);
         final PVAChannel ch2 = pva.getChannel("saw", listener);
-        assertTrue(connected.await(5, TimeUnit.SECONDS));
+        CompletableFuture.allOf(ch1.connect(), ch2.connect()).get(5, TimeUnit.SECONDS);
 
         // Get data
         Future<PVAStructure> data = ch1.read("");
@@ -132,7 +137,7 @@ public class ClientDemo
 
         // Connect to one or more channels
         final PVAChannel channel = pva.getChannel("ramp");
-        channel.awaitConnection(5, TimeUnit.SECONDS);
+        channel.connect().get(5, TimeUnit.SECONDS);
 
         // Write data
         channel.write("value", 2.0).get(2, TimeUnit.SECONDS);
@@ -149,7 +154,7 @@ public class ClientDemo
     {
         final PVAClient pva = new PVAClient();
         final PVAChannel channel = pva.getChannel("ramp.SCAN");
-        channel.awaitConnection(5, TimeUnit.SECONDS);
+        channel.connect().get(5, TimeUnit.SECONDS);
 
         // Set SCAN to ".1 second" and back to "1 second"
         channel.write("value", 9).get(2, TimeUnit.SECONDS);

@@ -41,7 +41,7 @@ public class TCPHandlerShutdownDemo
         final PVAClient pva = new PVAClient();
 
         final PVAChannel ch1 = pva.getChannel("ramp");
-        assertTrue(ch1.awaitConnection(5, TimeUnit.SECONDS));
+        assertTrue(ch1.connect().get(5, TimeUnit.SECONDS));
         Future<PVAStructure> data = ch1.read("");
         System.out.println(ch1.getName() + " = " + data.get());
         ch1.close();
@@ -52,7 +52,7 @@ public class TCPHandlerShutdownDemo
 
         // .. and re-used for other channel
         final PVAChannel ch2 = pva.getChannel("saw");
-        assertTrue(ch2.awaitConnection(5, TimeUnit.SECONDS));
+        assertTrue(ch2.connect().get(5, TimeUnit.SECONDS));
         data = ch2.read("");
         System.out.println(ch2.getName() + " = " + data.get());
         ch2.close();
