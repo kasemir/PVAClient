@@ -23,20 +23,20 @@ public class BitSetTest
         final ByteBuffer buffer = ByteBuffer.allocate(100);
         BitSet bits = new BitSet();
 
-        PVABitSet.putBitSet(bits, buffer);
+        PVABitSet.encodeBitSet(bits, buffer);
         buffer.flip();
         System.out.println(Hexdump.toHexdump(buffer));
 
         bits.set(7);
         buffer.clear();
-        PVABitSet.putBitSet(bits, buffer);
+        PVABitSet.encodeBitSet(bits, buffer);
         buffer.flip();
         System.out.println(Hexdump.toHexdump(buffer));
 
         bits.clear();
         bits.set(8);
         buffer.clear();
-        PVABitSet.putBitSet(bits, buffer);
+        PVABitSet.encodeBitSet(bits, buffer);
         buffer.flip();
         System.out.println(Hexdump.toHexdump(buffer));
 
@@ -47,18 +47,18 @@ public class BitSetTest
         bits.set(4);
         bits.set(8);
         buffer.clear();
-        PVABitSet.putBitSet(bits, buffer);
+        PVABitSet.encodeBitSet(bits, buffer);
         buffer.flip();
         System.out.println(Hexdump.toHexdump(buffer));
 
         bits.clear();
         bits.set(65);
         buffer.clear();
-        PVABitSet.putBitSet(bits, buffer);
+        PVABitSet.encodeBitSet(bits, buffer);
         buffer.flip();
         System.out.println(Hexdump.toHexdump(buffer));
 
-        final BitSet copy = PVABitSet.getBitSet(buffer);
+        final BitSet copy = PVABitSet.decodeBitSet(buffer);
         assertThat(copy, equalTo(bits));
     }
 }

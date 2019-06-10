@@ -8,6 +8,7 @@
 package org.epics.pva.data;
 
 import java.nio.ByteBuffer;
+import java.util.Arrays;
 import java.util.BitSet;
 import java.util.List;
 
@@ -19,9 +20,15 @@ public class PVAFloatArray extends PVAData implements PVAArray
 {
     private volatile float[] value;
 
-    public PVAFloatArray(final String name)
+    public PVAFloatArray(final String name, final float[] value)
     {
         super(name);
+        this.value = value;
+    }
+
+    public PVAFloatArray(final String name)
+    {
+        this(name, new float[0]);
     }
 
     /** @return Current value */
@@ -67,6 +74,12 @@ public class PVAFloatArray extends PVAData implements PVAArray
     }
 
     @Override
+    public PVAFloatArray cloneData()
+    {
+        return new PVAFloatArray(name, value.clone());
+    }
+
+    @Override
     public void encodeType(ByteBuffer buffer, BitSet described) throws Exception
     {
         buffer.put((byte) 0b01001010);
@@ -94,6 +107,24 @@ public class PVAFloatArray extends PVAData implements PVAArray
     }
 
     @Override
+    protected int update(final int index, final PVAData new_value, final BitSet changes) throws Exception
+    {
+        if (new_value instanceof PVAFloatArray)
+        {
+            final PVAFloatArray other = (PVAFloatArray) new_value;
+            // At least for open JDK11,
+            // this does use Float.floatToRawIntBits and thus handles
+            // NaN == NaN
+            if (! Arrays.equals(other.value, value))
+            {
+                value = other.value.clone();
+                changes.set(index);
+            }
+        }
+        return index + 1;
+    }
+
+    @Override
     protected void formatType(final int level, final StringBuilder buffer)
     {
         indent(level, buffer);
@@ -118,5 +149,14 @@ public class PVAFloatArray extends PVAData implements PVAArray
             }
         }
         buffer.append("]");
+    }
+
+    @Override
+    public boolean equals(final Object obj)
+    {
+        if (! (obj instanceof PVAFloatArray))
+            return false;
+        final PVAFloatArray other = (PVAFloatArray) obj;
+        return Arrays.equals(other.value, value);
     }
 }

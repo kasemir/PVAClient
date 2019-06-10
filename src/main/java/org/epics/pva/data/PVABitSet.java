@@ -15,16 +15,16 @@ import java.util.BitSet;
  */
 public class PVABitSet
 {
-    public static void putBitSet(final BitSet bits, final ByteBuffer buffer)
+    public static void encodeBitSet(final BitSet bits, final ByteBuffer buffer)
     {
         final byte[] bytes = bits.toByteArray();
         PVASize.encodeSize(bytes.length, buffer);
         buffer.put(bits.toByteArray());
     }
 
-    public static BitSet getBitSet(final ByteBuffer buffer)
+    public static BitSet decodeBitSet(final ByteBuffer buffer)
     {
-	final int size = PVASize.decodeSize(buffer);
+        final int size = PVASize.decodeSize(buffer);
         final byte[] bytes = new byte[size];
         buffer.get(bytes);
         return BitSet.valueOf(bytes);

@@ -73,8 +73,15 @@ public class PVAStructure extends PVADataWithID
     @Override
     public void setValue(final Object new_value) throws Exception
     {
-        // Cannot set structure, only individual elements
-        throw new Exception("Cannot set " + getStructureName() + " " + name + " to " + new_value);
+        if (! (new_value instanceof PVAStructure))
+            throw new Exception("Cannot set " + getStructureName() + " " + name + " to " + new_value);
+
+        final PVAStructure other = (PVAStructure) new_value;
+        final int N = elements.size();
+        if (other.elements.size() != N)
+            throw new Exception("Incompatible structures, got " + other.elements.size() + " elements but expected " + N);
+        for (int i=0; i<N; ++i)
+            elements.get(i).setValue(other.elements.get(i));
     }
 
     /** @return Structure type name */
@@ -89,6 +96,18 @@ public class PVAStructure extends PVADataWithID
         final List<PVAData> copy = new ArrayList<>(elements.size());
         for (PVAData element : elements)
             copy.add(element.cloneType(element.getName()));
+        final PVAStructure clone = new PVAStructure(name, struct_name, copy);
+        clone.type_id = type_id;
+        return clone;
+    }
+
+    @Override
+    public PVAStructure cloneData()
+    {
+        final List<PVAData> copy = new ArrayList<>(elements.size());
+        // Deep copy
+        for (PVAData element : elements)
+            copy.add(element.cloneData());
         final PVAStructure clone = new PVAStructure(name, struct_name, copy);
         clone.type_id = type_id;
         return clone;
@@ -373,6 +392,63 @@ public class PVAStructure extends PVADataWithID
         return -i;
     }
 
+    /** Update this structure with provided data
+     *
+     *  <p>The provided new value must be compatible,
+     *  i.e. contain the same types of elements.
+     *  The element names are not strictly checked,
+     *  but the number of elements and their type
+     *  must match.
+     *
+     *  <p>Each element update compares the original value
+     *  with the provided new value and tracks changes.
+     *
+     *  @param new_value Update data
+     *  @return {@link BitSet} of updated element indices
+     *  @throws Exception on error
+     */
+    public BitSet update(final PVAStructure new_value) throws Exception
+    {
+        final BitSet changes = new BitSet();
+        update(0, new_value, changes);
+        return changes;
+    }
+
+    @Override
+    protected int update(final int index, final PVAData new_value, final BitSet changes) throws Exception
+    {
+        if (! (new_value instanceof PVAStructure))
+            throw new Exception("Cannot set " + getStructureName() + " " + name + " to " + new_value);
+
+        final PVAStructure other = (PVAStructure) new_value;
+        final int N = elements.size();
+        if (other.elements.size() != N)
+            throw new Exception("Incompatible structures, got " + other.elements.size() + " elements but expected " + N);
+        if (N <= 0)
+            return index;
+
+        final BitSet changed_elements = new BitSet();
+        boolean all_changed = true;
+        // Increment from overall structure to index of first element
+        int el_index = index + 1;
+        for (int i=0; i<N; ++i)
+        {
+            final int next_idx = elements.get(i).update(el_index, other.elements.get(i), changed_elements);
+            if (! changed_elements.get(el_index))
+                all_changed = false;
+            el_index = next_idx;
+        }
+
+        // When a complete structure changes, i.e. all its elements,
+        // set the bit for the structure and not for each element
+        if (all_changed)
+            changes.set(index);
+        else
+            changes.or(changed_elements);
+
+        return el_index;
+    }
+
     @Override
     public void formatType(int level, StringBuilder buffer)
     {
@@ -415,6 +491,17 @@ public class PVAStructure extends PVADataWithID
         if (label != null)
             buffer.append(" [").append(label).append("]");
 
+    }
+
+    // Called by PVAStructureArray.update() when comparing structures
+    @Override
+    public boolean equals(final Object obj)
+    {
+        if (! (obj instanceof PVAStructure))
+            return false;
+
+        final PVAStructure other = (PVAStructure) obj;
+        return other.elements.equals(elements);
     }
 
     @Override

@@ -21,11 +21,17 @@ import java.util.BitSet;
 @SuppressWarnings("nls")
 public class PVAny extends PVAData
 {
-    private volatile PVAData value = null;
+    private volatile PVAData value;
+
+    public PVAny(final String name, final PVAData value)
+    {
+        super(name);
+        this.value = value;
+    }
 
     public PVAny(final String name)
     {
-        super(name);
+        this(name, null);
     }
 
     public PVAData get()
@@ -46,6 +52,12 @@ public class PVAny extends PVAData
     public PVAData cloneType(final String name)
     {
         return new PVAny(name);
+    }
+
+    @Override
+    public PVAData cloneData()
+    {
+        return new PVAny(name, value.cloneData());
     }
 
     @Override
@@ -71,6 +83,21 @@ public class PVAny extends PVAData
     }
 
     @Override
+    protected int update(final int index, final PVAData new_value, final BitSet changes) throws Exception
+    {
+        if (new_value instanceof PVAny)
+        {
+            final PVAny other = (PVAny) new_value;
+            if (! other.value.equals(value))
+            {
+                value = other.value.cloneData();
+                changes.set(index);
+            }
+        }
+        return index + 1;
+    }
+
+    @Override
     protected void formatType(final int level, final StringBuilder buffer)
     {
         indent(level, buffer);
@@ -89,5 +116,14 @@ public class PVAny extends PVAData
         }
         else
             value.format(level+1, buffer);
+    }
+
+    @Override
+    public boolean equals(final Object obj)
+    {
+        if (! (obj instanceof PVAny))
+            return false;
+        final PVAny other = (PVAny) obj;
+        return other.equals(value);
     }
 }

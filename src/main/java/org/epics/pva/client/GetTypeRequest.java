@@ -18,6 +18,7 @@ import org.epics.pva.data.PVAData;
 import org.epics.pva.data.PVAStatus;
 import org.epics.pva.data.PVAString;
 import org.epics.pva.data.PVAStructure;
+import org.epics.pva.network.RequestEncoder;
 
 @SuppressWarnings("nls")
 class GetTypeRequest extends CompletableFuture<PVAStructure> implements RequestEncoder, ResponseHandler
@@ -67,9 +68,9 @@ class GetTypeRequest extends CompletableFuture<PVAStructure> implements RequestE
     }
 
     @Override
-    public void handleResponse(final ByteBuffer buffer, final int payload_size) throws Exception
+    public void handleResponse(final ByteBuffer buffer) throws Exception
     {
-        if (payload_size < 4+1+1)
+        if (buffer.remaining() < 4+1+1)
             fail(new Exception("Incomplete Get-Type Response"));
         final int request_id = buffer.getInt();
         PVAStatus status = PVAStatus.decode(buffer);

@@ -11,6 +11,7 @@ import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 
 /** PVA Message Header Command Codes */
+@SuppressWarnings("nls")
 public class PVAHeader
 {
     /** PVA protocol magic */
@@ -75,7 +76,20 @@ public class PVAHeader
     /** Application command: Get type info */
     public static final byte CMD_GET_TYPE = 0x11;
 
+    /** Application command: Cancel request */
+    public static final byte CMD_CANCEL = 0x15;
 
+    
+    /** Sub command to initialize GET/PUT/MONITOR (get data description) */
+    public static final byte CMD_SUB_INIT = 0x08;
+
+    /** Sub command to (re)start getting monitor values */
+    public static final byte CMD_SUB_START = 0x44;
+    
+    /** Sub command to stop/pause a monitor*/
+    public static final byte CMD_SUB_STOP = 0x04;
+
+    
     /** Control message command to set byte order */
     public static final byte CTRL_SET_BYTE_ORDER = 2;
 
@@ -84,7 +98,6 @@ public class PVAHeader
 
     /** Offset from start of common PVA message header to int payload_size */
     public static final int HEADER_OFFSET_PAYLOAD_SIZE = 4;
-
 
 
     /** Encode common PVA message header
@@ -105,5 +118,48 @@ public class PVAHeader
         buffer.put(flags);
         buffer.put(command);
         buffer.putInt(payload_size);
+    }
+    
+    /** Check message header for correct protocol identifier and version
+     *  @param buffer Buffer as start of protocol header
+     *  @param expect_server Expect a server message? Else client message
+     *  @return Expected total message size (header + payload)
+     *  @throws Exception on protocol violation
+     */
+    public static int checkMessageAndGetSize(final ByteBuffer buffer, final boolean expect_server) throws Exception
+    {
+        if (buffer.position() < PVAHeader.HEADER_SIZE)
+            return PVAHeader.HEADER_SIZE;
+
+        final byte magic = buffer.get(0);
+        if (magic != PVAHeader.PVA_MAGIC)
+            throw new Exception("Message lacks magic");
+
+        final byte version = buffer.get(1);
+        if (version < PVAHeader.REQUIRED_PVA_PROTOCOL_REVISION)
+            throw new Exception("Cannot handle protocol version " + version +
+                                ", expect version " +
+                                PVAHeader.REQUIRED_PVA_PROTOCOL_REVISION +
+                                " or higher");
+
+        final byte flags = buffer.get(2);
+        final boolean is_server = (flags & PVAHeader.FLAG_SERVER) != 0;
+        if (is_server != expect_server)
+                throw new Exception(expect_server ? "Expected server message" : "Expected client message");
+
+        if ((flags & PVAHeader.FLAG_BIG_ENDIAN) == 0)
+            buffer.order(ByteOrder.LITTLE_ENDIAN);
+        else
+            buffer.order(ByteOrder.BIG_ENDIAN);
+
+        // Control messages use the 'payload' field itself for data
+        if ((flags & PVAHeader.FLAG_CONTROL) != 0)
+            return PVAHeader.HEADER_SIZE;
+
+        // Application messages are followed by this number of data bytes
+        final int payload = buffer.getInt(PVAHeader.HEADER_OFFSET_PAYLOAD_SIZE);
+
+        // Total message size: Header followed by data
+        return PVAHeader.HEADER_SIZE + payload;
     }
 }

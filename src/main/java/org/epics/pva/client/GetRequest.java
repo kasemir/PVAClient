@@ -19,16 +19,11 @@ import org.epics.pva.data.PVABitSet;
 import org.epics.pva.data.PVAData;
 import org.epics.pva.data.PVAStatus;
 import org.epics.pva.data.PVAStructure;
+import org.epics.pva.network.RequestEncoder;
 
 @SuppressWarnings("nls")
 class GetRequest extends CompletableFuture<PVAStructure> implements RequestEncoder, ResponseHandler
 {
-    /** Sub command to initialize GET/PUT/MONITOR (get data description */
-    static final byte INIT = 0x08;
-
-    /** Sub command to get value */
-    private static final byte GET = 0x40;
-
     /** Sub command delete the request with last GET/PUT/.. */
     static final byte DESTROY = 0x10;
 
@@ -80,7 +75,7 @@ class GetRequest extends CompletableFuture<PVAStructure> implements RequestEncod
             PVAHeader.encodeMessageHeader(buffer, PVAHeader.FLAG_NONE, PVAHeader.CMD_GET, 4+4+1+6);
             buffer.putInt(channel.sid);
             buffer.putInt(request_id);
-            buffer.put(INIT);
+            buffer.put(PVAHeader.CMD_SUB_INIT);
 
             final FieldRequest field_request = new FieldRequest(request);
             final int request_size = field_request.encodeType(buffer);
@@ -94,14 +89,14 @@ class GetRequest extends CompletableFuture<PVAStructure> implements RequestEncod
             PVAHeader.encodeMessageHeader(buffer, PVAHeader.FLAG_NONE, PVAHeader.CMD_GET, 4+4+1);
             buffer.putInt(channel.sid);
             buffer.putInt(request_id);
-            buffer.put((byte) (GET | DESTROY));
+            buffer.put(DESTROY);
         }
     }
 
     @Override
-    public void handleResponse(final ByteBuffer buffer, final int payload_size) throws Exception
+    public void handleResponse(final ByteBuffer buffer) throws Exception
     {
-        if (payload_size < 4+1+1)
+        if (buffer.remaining() < 4+1+1)
             fail(new Exception("Incomplete Get Response"));
         final int request_id = buffer.getInt();
         final byte subcmd = buffer.get();
@@ -109,7 +104,7 @@ class GetRequest extends CompletableFuture<PVAStructure> implements RequestEncod
         if (! status.isSuccess())
             throw new Exception(channel + " Get Response for " + request + ": " + status);
 
-        if (subcmd == GetRequest.INIT)
+        if (subcmd == PVAHeader.CMD_SUB_INIT)
         {
             logger.log(Level.FINE,
                        () -> "Received get INIT reply #" + request_id +
@@ -131,7 +126,7 @@ class GetRequest extends CompletableFuture<PVAStructure> implements RequestEncod
             // Submit request again, this time to GET data
             channel.getTCP().submit(this, this);
         }
-        else if ((subcmd & GET) != 0)
+        else
         {
             logger.log(Level.FINE,
                        () -> "Received get GET reply #" + request_id +
@@ -139,7 +134,7 @@ class GetRequest extends CompletableFuture<PVAStructure> implements RequestEncod
 
             // Decode data from GET reply
             // 1) Bitset that indicates which elements of struct will follow
-            final BitSet changes = PVABitSet.getBitSet(buffer);
+            final BitSet changes = PVABitSet.decodeBitSet(buffer);
             logger.log(Level.FINER, () -> "Updated: " + changes);
 
             // 2) Decode those elements
@@ -148,8 +143,6 @@ class GetRequest extends CompletableFuture<PVAStructure> implements RequestEncod
             // Indicate completion now that we have data
             complete(data);
         }
-        else
-            fail(new Exception("Cannot decode Get " + subcmd + " Reply #" + request_id));
     }
 
     private void fail(final Exception ex) throws Exception

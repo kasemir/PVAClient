@@ -5,13 +5,17 @@
  * which accompanies this distribution, and is available at
  * http://www.eclipse.org/legal/epl-v10.html
  ******************************************************************************/
-package org.epics.pva.client;
+package org.epics.pva.network;
 
 import static org.epics.pva.PVASettings.logger;
 
+import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.InterfaceAddress;
 import java.net.NetworkInterface;
+import java.net.StandardProtocolFamily;
+import java.net.StandardSocketOptions;
+import java.nio.channels.DatagramChannel;
 import java.util.ArrayList;
 import java.util.Enumeration;
 import java.util.List;
@@ -112,4 +116,51 @@ public class Network
 
         return null;
     }
+    
+    /** Create UDP channel
+     * 
+     *  @param broadcast Support broadcast?
+     *  @param port Port to use or 0 to auto-assign
+     *  @return
+     *  @throws Exception
+     */
+    public static DatagramChannel createUDP(boolean broadcast, int port) throws Exception
+    {
+        // Current use of multicast addresses works only with INET, not INET6
+        final DatagramChannel udp = DatagramChannel.open(StandardProtocolFamily.INET);
+        udp.configureBlocking(true);
+        if (broadcast)
+            udp.socket().setBroadcast(true);
+        udp.socket().setReuseAddress(true);
+        udp.bind(new InetSocketAddress(port));
+        return udp;
+    }
+    
+    /** Try to listen to multicast messages
+     *  @return Found support for multicast?
+     */
+    public static boolean configureMulticast(final DatagramChannel udp)
+    {
+        try
+        {
+            final NetworkInterface loopback = getLoopback();
+            if (loopback != null)
+            {
+                final InetAddress group = InetAddress.getByName(PVASettings.EPICS_PVA_MULTICAST_GROUP);
+                final InetSocketAddress local_broadcast = new InetSocketAddress(group, PVASettings.EPICS_PVA_BROADCAST_PORT);
+                udp.join(group, loopback);
+
+                logger.log(Level.CONFIG, "Multicast group " + local_broadcast + " using network interface " + loopback.getDisplayName());
+                udp.setOption(StandardSocketOptions.IP_MULTICAST_LOOP, true);
+                udp.setOption(StandardSocketOptions.IP_MULTICAST_IF, loopback);
+            }
+        }
+        catch (Exception ex)
+        {
+            logger.log(Level.WARNING, "Cannot configure multicast support", ex);
+            return false;
+        }
+        return true;
+    }
+
 }

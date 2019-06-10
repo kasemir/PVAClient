@@ -26,8 +26,14 @@ public class PVALong extends PVANumber
 
     public PVALong(final String name, final boolean unsigned)
     {
+        this(name, unsigned, 0);
+    }
+
+    public PVALong(final String name, final boolean unsigned, final long value)
+    {
         super(name);
         this.unsigned = unsigned;
+        this.value = value;
     }
 
     /** @return Is value unsigned? */
@@ -57,7 +63,9 @@ public class PVALong extends PVANumber
     @Override
     public void setValue(final Object new_value) throws Exception
     {
-        if (new_value instanceof Number)
+        if (new_value instanceof PVANumber)
+            set(((PVANumber) new_value).getNumber().longValue());
+        else if (new_value instanceof Number)
             set(((Number) new_value).longValue());
         else if (new_value instanceof String)
             set(parseString(new_value.toString()).longValue());
@@ -69,6 +77,12 @@ public class PVALong extends PVANumber
     public PVALong cloneType(final String name)
     {
         return new PVALong(name, unsigned);
+    }
+
+    @Override
+    public PVALong cloneData()
+    {
+        return new PVALong(name, unsigned, value);
     }
 
     @Override
@@ -93,6 +107,21 @@ public class PVALong extends PVANumber
     }
 
     @Override
+    protected int update(final int index, final PVAData new_value, final BitSet changes) throws Exception
+    {
+        if (new_value instanceof PVALong)
+        {
+            final PVALong other = (PVALong) new_value;
+            if (other.value != value)
+            {
+                value = other.value;
+                changes.set(index);
+            }
+        }
+        return index + 1;
+    }
+
+    @Override
     protected void formatType(final int level, final StringBuilder buffer)
     {
         indent(level, buffer);
@@ -110,5 +139,14 @@ public class PVALong extends PVANumber
             buffer.append(Long.toUnsignedString(value));
         else
             buffer.append(value);
+    }
+
+    @Override
+    public boolean equals(final Object obj)
+    {
+        if (! (obj instanceof PVALong))
+            return false;
+        final PVALong other = (PVALong) obj;
+        return other.value == value;
     }
 }

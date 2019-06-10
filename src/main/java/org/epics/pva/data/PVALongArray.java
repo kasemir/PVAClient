@@ -8,6 +8,7 @@
 package org.epics.pva.data;
 
 import java.nio.ByteBuffer;
+import java.util.Arrays;
 import java.util.BitSet;
 import java.util.List;
 
@@ -20,10 +21,16 @@ public class PVALongArray extends PVAData implements PVAArray
     private final boolean unsigned;
     private volatile long[] value;
 
-    public PVALongArray(final String name, final boolean unsigned)
+    public PVALongArray(final String name, final boolean unsigned, final long[] value)
     {
         super(name);
         this.unsigned = unsigned;
+        this.value = value;
+    }
+
+    public PVALongArray(final String name, final boolean unsigned)
+    {
+        this(name, unsigned, new long[0]);
     }
 
     /** @return Is value unsigned? */
@@ -75,6 +82,12 @@ public class PVALongArray extends PVAData implements PVAArray
     }
 
     @Override
+    public PVALongArray cloneData()
+    {
+        return new PVALongArray(name, unsigned, value.clone());
+    }
+
+    @Override
     public void encodeType(ByteBuffer buffer, BitSet described) throws Exception
     {
         if (unsigned)
@@ -102,6 +115,21 @@ public class PVALongArray extends PVAData implements PVAArray
         PVASize.encodeSize(copy.length, buffer);
         for (int i=0; i<copy.length; ++i)
             buffer.putLong(copy[i]);
+    }
+
+    @Override
+    protected int update(final int index, final PVAData new_value, final BitSet changes) throws Exception
+    {
+        if (new_value instanceof PVALongArray)
+        {
+            final PVALongArray other = (PVALongArray) new_value;
+            if (! Arrays.equals(other.value, value))
+            {
+                value = other.value.clone();
+                changes.set(index);
+            }
+        }
+        return index + 1;
     }
 
     @Override
@@ -134,5 +162,14 @@ public class PVALongArray extends PVAData implements PVAArray
             }
         }
         buffer.append("]");
+    }
+
+    @Override
+    public boolean equals(final Object obj)
+    {
+        if (! (obj instanceof PVALongArray))
+            return false;
+        final PVALongArray other = (PVALongArray) obj;
+        return Arrays.equals(other.value, value);
     }
 }

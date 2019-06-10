@@ -32,7 +32,13 @@ public class PVABool extends PVAData
 
     public PVABool(final String name)
     {
+        this(name, false);
+    }
+
+    public PVABool(final String name, final boolean value)
+    {
         super(name);
+        this.value = value;
     }
 
     /** @return Current value */
@@ -50,7 +56,11 @@ public class PVABool extends PVAData
     @Override
     public void setValue(final Object new_value) throws Exception
     {
-        if (new_value instanceof Boolean)
+        if (new_value instanceof PVABool)
+            set(((PVABool) new_value).get());
+        else if (new_value instanceof PVANumber)
+            set(((PVANumber) new_value).getNumber().intValue() != 0);
+        else if (new_value instanceof Boolean)
             set(((Boolean) new_value));
         else if (new_value instanceof Number)
             set(((Number) new_value).intValue() != 0);
@@ -67,6 +77,12 @@ public class PVABool extends PVAData
     }
 
     @Override
+    public PVABool cloneData()
+    {
+        return new PVABool(name, value);
+    }
+
+    @Override
     public void encodeType(ByteBuffer buffer, BitSet described) throws Exception
     {
         buffer.put(FIELD_DESC_TYPE);
@@ -80,6 +96,14 @@ public class PVABool extends PVAData
         return buffer.get() != 0;
     }
 
+    /** @param value Value to encode
+     *  @param buffer Buffer into which to encode boolean
+     */
+    public static void encodeBoolean(final boolean value, final ByteBuffer buffer)
+    {
+        buffer.put(value ? (byte)1 : (byte) 0);
+    }
+
     @Override
     public void decode(final PVATypeRegistry types, final ByteBuffer buffer) throws Exception
     {
@@ -87,9 +111,24 @@ public class PVABool extends PVAData
     }
 
     @Override
-    public void encode(final ByteBuffer buffer) throws Exception
+    public void encode(final ByteBuffer buffer)
     {
-        buffer.put(value ? (byte)1 : (byte) 0);
+        encodeBoolean(value, buffer);
+    }
+
+    @Override
+    protected int update(final int index, final PVAData new_value, final BitSet changes) throws Exception
+    {
+        if (new_value instanceof PVABool)
+        {
+            final PVABool other = (PVABool) new_value;
+            if (other.value != value)
+            {
+                value = other.value;
+                changes.set(index);
+            }
+        }
+        return index + 1;
     }
 
     @Override
@@ -104,5 +143,14 @@ public class PVABool extends PVAData
     {
         formatType(level, buffer);
         buffer.append(" ").append(value);
+    }
+
+    @Override
+    public boolean equals(final Object obj)
+    {
+        if (! (obj instanceof PVABool))
+            return false;
+        final PVABool other = (PVABool) obj;
+        return other.value == value;
     }
 }

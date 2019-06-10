@@ -10,6 +10,7 @@ package org.epics.pva.data;
 import static org.epics.pva.PVASettings.logger;
 
 import java.nio.ByteBuffer;
+import java.util.Arrays;
 import java.util.BitSet;
 import java.util.logging.Level;
 
@@ -40,12 +41,18 @@ public class PVAStructureArray extends PVADataWithID implements PVAArray
      *  <p>The value of each element may be updated, but
      *  no elements can be added, removed, replaced.
      */
-    private volatile PVAStructure[] elements = new PVAStructure[0];
+    private volatile PVAStructure[] elements;
 
-    public PVAStructureArray(final String name, final PVAStructure element_type)
+    public PVAStructureArray(final String name, final PVAStructure element_type, final PVAStructure[] elements)
     {
         super(name);
         this.element_type = element_type;
+        this.elements = elements;
+    }
+
+    public PVAStructureArray(final String name, final PVAStructure element_type)
+    {
+        this(name, element_type, new PVAStructure[0]);
     }
 
     public PVAStructure[] get()
@@ -70,6 +77,17 @@ public class PVAStructureArray extends PVADataWithID implements PVAArray
     public PVAStructureArray cloneType(final String name)
     {
         return new PVAStructureArray(name, element_type);
+    }
+
+    @Override
+    public PVAStructureArray cloneData()
+    {
+        final PVAStructure[] safe = elements;
+        final PVAStructure[] copy = new PVAStructure[safe.length];
+        // Deep copy
+        for (int i=0; i<copy.length; ++i)
+            copy[i] = safe[i].cloneData();
+        return new PVAStructureArray(name, element_type, copy);
     }
 
     @Override
@@ -132,6 +150,24 @@ public class PVAStructureArray extends PVADataWithID implements PVAArray
     }
 
     @Override
+    protected int update(final int index, final PVAData new_value, final BitSet changes) throws Exception
+    {
+        if (new_value instanceof PVAStructureArray)
+        {
+            final PVAStructureArray other = (PVAStructureArray) new_value;
+            if (! Arrays.equals(other.elements, elements))
+            {
+                // Deep copy
+                final PVAStructure[] copy = new PVAStructure[other.elements.length];
+                for (int i=0; i<copy.length; ++i)
+                    copy[i] = other.elements[i].cloneData();
+                changes.set(index);
+            }
+        }
+        return index + 1;
+    }
+
+    @Override
     public void formatType(int level, StringBuilder buffer)
     {
         indent(level, buffer);
@@ -160,5 +196,14 @@ public class PVAStructureArray extends PVADataWithID implements PVAArray
             buffer.append("\n");
             element.format(level+1, buffer);
         }
+    }
+
+    @Override
+    public boolean equals(final Object obj)
+    {
+        if (! (obj instanceof PVAStructureArray))
+            return false;
+        final PVAStructureArray other = (PVAStructureArray) obj;
+        return other.elements.equals(elements);
     }
 }

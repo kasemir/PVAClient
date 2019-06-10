@@ -13,6 +13,7 @@ import static org.junit.Assert.fail;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.logging.LogManager;
 
 import org.epics.pva.client.ClientChannelListener;
@@ -67,22 +68,29 @@ public class ClientDemo
     {
         final PVAClient pva = new PVAClient();
         final PVAChannel ch = pva.getChannel("bogus");
+        final long start = System.currentTimeMillis();
         try
         {
             ch.connect().get(3, TimeUnit.SECONDS);
             fail("Connected?!");
         }
-        catch (Exception ex)
+        catch (TimeoutException ex)
         {
-            
+            // Expected
         }
- 
+        final long timeout = System.currentTimeMillis();
+        assertTrue(timeout - start < 3500);
+
+        System.out.println("Gave up connecting to " + ch);
         ch.close();
- 
+
+        // TODO This waits for the CLOSING channel...
         pva.close();
+        final long done = System.currentTimeMillis();
+        // assertTrue(done - timeout < 1000);
     }
 
-    
+
     @Test
     public void testSimplestGet() throws Exception
     {

@@ -19,6 +19,7 @@ import org.epics.pva.data.PVABitSet;
 import org.epics.pva.data.PVAData;
 import org.epics.pva.data.PVAStatus;
 import org.epics.pva.data.PVAStructure;
+import org.epics.pva.network.RequestEncoder;
 
 @SuppressWarnings("nls")
 class PutRequest extends CompletableFuture<Void> implements RequestEncoder, ResponseHandler
@@ -80,7 +81,7 @@ class PutRequest extends CompletableFuture<Void> implements RequestEncoder, Resp
             PVAHeader.encodeMessageHeader(buffer, PVAHeader.FLAG_NONE, PVAHeader.CMD_PUT, 4+4+1+6);
             buffer.putInt(channel.sid);
             buffer.putInt(request_id);
-            buffer.put(GetRequest.INIT);
+            buffer.put(PVAHeader.CMD_SUB_INIT);
 
             final FieldRequest field_request = new FieldRequest(request);
             final int request_size = field_request.encodeType(buffer);
@@ -118,7 +119,7 @@ class PutRequest extends CompletableFuture<Void> implements RequestEncoder, Resp
             final BitSet changed = new BitSet();
             changed.set(data.getIndex(field));
             logger.log(Level.FINE, () -> "Updated structure elements: " + changed);
-            PVABitSet.putBitSet(changed, buffer);
+            PVABitSet.encodeBitSet(changed, buffer);
 
             // Write the updated field
             field.setValue(new_value);
@@ -131,9 +132,9 @@ class PutRequest extends CompletableFuture<Void> implements RequestEncoder, Resp
     }
 
     @Override
-    public void handleResponse(final ByteBuffer buffer, final int payload_size) throws Exception
+    public void handleResponse(final ByteBuffer buffer) throws Exception
     {
-        if (payload_size < 4+1+1)
+        if (buffer.remaining() < 4+1+1)
             fail(new Exception("Incomplete Put Response"));
         final int request_id = buffer.getInt();
         final byte subcmd = buffer.get();
@@ -141,7 +142,7 @@ class PutRequest extends CompletableFuture<Void> implements RequestEncoder, Resp
         if (! status.isSuccess())
             throw new Exception(channel + " Put Response for " + request + ": " + status);
 
-        if (subcmd == GetRequest.INIT)
+        if (subcmd == PVAHeader.CMD_SUB_INIT)
         {
             logger.log(Level.FINE,
                        () -> "Received put INIT reply #" + request_id +

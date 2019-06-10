@@ -52,7 +52,7 @@ public class PVAChannel
     private CompletableFuture<Boolean> connected = new CompletableFuture<>();
     
     /** TCP Handler, set by PVAClient */
-    final AtomicReference<TCPHandler> tcp = new AtomicReference<>();
+    final AtomicReference<ClientTCPHandler> tcp = new AtomicReference<>();
 
     PVAChannel(final PVAClient client, final String name, final ClientChannelListener listener)
     {
@@ -66,9 +66,9 @@ public class PVAChannel
         return client;
     }
 
-    TCPHandler getTCP() throws Exception
+    ClientTCPHandler getTCP() throws Exception
     {
-        final TCPHandler copy = tcp.get();
+        final ClientTCPHandler copy = tcp.get();
         if (copy == null)
             throw new Exception("Channel '" + name + "' is not connected");
         return copy;
@@ -136,11 +136,11 @@ public class PVAChannel
      *  <p>Asks server to create channel
      *  on this TCP connection.
      *
-     *  @param tcp {@link TCPHandler}
+     *  @param tcp {@link ClientTCPHandler}
      */
-    void registerWithServer(final TCPHandler tcp)
+    void registerWithServer(final ClientTCPHandler tcp)
     {
-        final TCPHandler old = this.tcp.getAndSet(tcp);
+        final ClientTCPHandler old = this.tcp.getAndSet(tcp);
         if (old != null)
             logger.log(Level.WARNING, this + " was already on " + old + ", now added to " + tcp);
         tcp.addChannel(this);
@@ -170,13 +170,13 @@ public class PVAChannel
         // Else: Channel was destroyed or closed, ignore the late connection
     }
 
-    /** Connection lost, detach from {@link TCPHandler}
+    /** Connection lost, detach from {@link ClientTCPHandler}
      *  @return <code>true</code> if the channel was searched or connected,
      *          <code>false</code> if it was closing or closed
      */
     boolean resetConnection()
     {
-        final TCPHandler old = tcp.getAndSet(null);
+        final ClientTCPHandler old = tcp.getAndSet(null);
         if (old != null)
             old.removeChannel(this);
         final ClientChannelState old_state = setState(ClientChannelState.INIT);
@@ -290,7 +290,7 @@ public class PVAChannel
 
         // Try to destroy channel on server,
         // but depending on situation that may no longer reach the server
-        final TCPHandler safe = tcp.get();
+        final ClientTCPHandler safe = tcp.get();
         if (safe != null)
             safe.submit(new DestroyChannelRequest(this));
     }

@@ -8,6 +8,7 @@
 package org.epics.pva.data;
 
 import java.nio.ByteBuffer;
+import java.util.Arrays;
 import java.util.BitSet;
 import java.util.List;
 
@@ -19,9 +20,15 @@ public class PVABoolArray extends PVAData implements PVAArray
 {
     private volatile boolean[] value;
 
-    public PVABoolArray(final String name)
+    public PVABoolArray(final String name, final boolean[] value)
     {
         super(name);
+        this.value = value;
+    }
+
+    public PVABoolArray(final String name)
+    {
+        this(name, new boolean[0]);
     }
 
     /** @return Current value */
@@ -67,6 +74,12 @@ public class PVABoolArray extends PVAData implements PVAArray
     }
 
     @Override
+    public PVABoolArray cloneData()
+    {
+        return new PVABoolArray(name, value.clone());
+    }
+
+    @Override
     public void encodeType(ByteBuffer buffer, BitSet described) throws Exception
     {
         buffer.put((byte) (PVABool.FIELD_DESC_TYPE | PVAFieldDesc.Array.VARIABLE_SIZE.mask));
@@ -94,6 +107,21 @@ public class PVABoolArray extends PVAData implements PVAArray
     }
 
     @Override
+    protected int update(final int index, final PVAData new_value, final BitSet changes) throws Exception
+    {
+        if (new_value instanceof PVABoolArray)
+        {
+            final PVABoolArray other = (PVABoolArray) new_value;
+            if (! Arrays.equals(other.value, value))
+            {
+                value = other.value.clone();
+                changes.set(index);
+            }
+        }
+        return index + 1;
+    }
+
+    @Override
     protected void formatType(final int level, final StringBuilder buffer)
     {
         indent(level, buffer);
@@ -118,5 +146,14 @@ public class PVABoolArray extends PVAData implements PVAArray
             }
         }
         buffer.append("]");
+    }
+
+    @Override
+    public boolean equals(final Object obj)
+    {
+        if (! (obj instanceof PVABoolArray))
+            return false;
+        final PVABoolArray other = (PVABoolArray) obj;
+        return Arrays.equals(other.value, value);
     }
 }

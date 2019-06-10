@@ -50,7 +50,9 @@ public class PVADouble extends PVANumber
     @Override
     public void setValue(final Object new_value) throws Exception
     {
-        if (new_value instanceof Number)
+        if (new_value instanceof PVANumber)
+            set(((PVANumber) new_value).getNumber().doubleValue());
+        else if (new_value instanceof Number)
             set(((Number) new_value).doubleValue());
         else if (new_value instanceof String)
                 set(parseString(new_value.toString()).doubleValue());
@@ -62,6 +64,12 @@ public class PVADouble extends PVANumber
     public PVADouble cloneType(final String name)
     {
         return new PVADouble(name);
+    }
+
+    @Override
+    public PVADouble cloneData()
+    {
+        return new PVADouble(name, value);
     }
 
     @Override
@@ -81,6 +89,23 @@ public class PVADouble extends PVANumber
     {
         buffer.putDouble(value);
     }
+
+    @Override
+    protected int update(final int index, final PVAData new_value, final BitSet changes) throws Exception
+    {
+        if (new_value instanceof PVADouble)
+        {
+            final PVADouble other = (PVADouble) new_value;
+            if (Double.doubleToRawLongBits(other.value) !=
+                Double.doubleToRawLongBits(value))
+            {
+                value = other.value;
+                changes.set(index);
+            }
+        }
+        return index + 1;
+    }
+
     @Override
     protected void formatType(final int level, final StringBuilder buffer)
     {
@@ -93,5 +118,15 @@ public class PVADouble extends PVANumber
     {
         formatType(level, buffer);
         buffer.append(" ").append(value);
+    }
+
+    @Override
+    public boolean equals(final Object obj)
+    {
+        if (! (obj instanceof PVADouble))
+            return false;
+        final PVADouble other = (PVADouble) obj;
+        return Double.doubleToRawLongBits(other.value) ==
+               Double.doubleToRawLongBits(value);
     }
 }

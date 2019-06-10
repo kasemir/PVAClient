@@ -43,10 +43,15 @@ public class PVAFloat extends PVANumber
 
     private volatile float value;
 
-    public PVAFloat(final String name)
+    public PVAFloat(final String name, final float value)
     {
         super(name);
-        value = Float.NaN;
+        this.value = value;
+    }
+
+    public PVAFloat(final String name)
+    {
+        this(name, Float.NaN);
     }
 
     @Override
@@ -70,7 +75,9 @@ public class PVAFloat extends PVANumber
     @Override
     public void setValue(final Object new_value) throws Exception
     {
-        if (new_value instanceof Number)
+        if (new_value instanceof PVANumber)
+            set(((PVANumber) new_value).getNumber().floatValue());
+        else if (new_value instanceof Number)
             set(((Number) new_value).floatValue());
         else if (new_value instanceof String)
             set(parseString(new_value.toString()).floatValue());
@@ -82,6 +89,12 @@ public class PVAFloat extends PVANumber
     public PVAFloat cloneType(final String name)
     {
         return new PVAFloat(name);
+    }
+
+    @Override
+    public PVAFloat cloneData()
+    {
+        return new PVAFloat(name, value);
     }
 
     @Override
@@ -103,6 +116,22 @@ public class PVAFloat extends PVANumber
     }
 
     @Override
+    protected int update(final int index, final PVAData new_value, final BitSet changes) throws Exception
+    {
+        if (new_value instanceof PVAFloat)
+        {
+            final PVAFloat other = (PVAFloat) new_value;
+            if (Float.floatToRawIntBits(other.value) !=
+                Float.floatToRawIntBits(value))
+            {
+                value = other.value;
+                changes.set(index);
+            }
+        }
+        return index + 1;
+    }
+
+    @Override
     protected void formatType(final int level, final StringBuilder buffer)
     {
         indent(level, buffer);
@@ -114,5 +143,15 @@ public class PVAFloat extends PVANumber
     {
         formatType(level, buffer);
         buffer.append(" ").append(value);
+    }
+
+    @Override
+    public boolean equals(final Object obj)
+    {
+        if (! (obj instanceof PVAFloat))
+            return false;
+        final PVAFloat other = (PVAFloat) obj;
+        return Float.floatToRawIntBits(other.value) ==
+                Float.floatToRawIntBits(value);
     }
 }

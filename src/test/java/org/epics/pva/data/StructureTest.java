@@ -12,6 +12,8 @@ import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.CoreMatchers.nullValue;
 import static org.junit.Assert.assertThat;
 
+import java.util.BitSet;
+
 import org.junit.Test;
 
 @SuppressWarnings("nls")
@@ -25,10 +27,10 @@ public class StructureTest
                                                    new PVALong("secondsPastEpoch"),
                                                    new PVAInt("nanoseconds", 42),
                                                    new PVAInt("userTag"));
-        // Set value of other field in struct 
+        // Set value of other field in struct
         final PVALong sec = time.get("secondsPastEpoch");
         sec.set(41);
-        
+
         // Create some other struct
         final PVAStructure alarm = new PVAStructure("alarm", "alarm_t",
                                                     new PVAInt("severity"),
@@ -110,5 +112,130 @@ public class StructureTest
         sub = data.get(i);
         System.out.println("Index " + i + ": " + sub);
         assertThat(sub, nullValue());
+    }
+
+    /** Assign structure elements from a few different types */
+    @Test
+    public void testAssign() throws Exception
+    {
+        final PVAStructure time = new PVAStructure("timeStamp", "time_t",
+                                                   new PVALong("secondsPastEpoch"),
+                                                   new PVAInt("nanoseconds"),
+                                                   new PVAInt("userTag"));
+        final PVAStructure data = new PVAStructure("demo", "NTBogus",
+                                                   new PVADouble("value", 3.14),
+                                                   time,
+                                                   new PVAString("extra"),
+                                                   new PVABool("flag"));
+
+        PVAData new_value = new PVAFloat("", 42.0f);
+        PVAData new_extra = new PVAString("", "tag!");
+        data.get(1).setValue(new_value);
+        data.get(6).setValue(new_extra);
+        data.get(7).setValue(1);
+        System.out.println(data);
+
+        data.get(1).setValue(24.0);
+        data.get("extra").setValue(new_value);
+        data.get(7).setValue(0);
+        System.out.println(data);
+    }
+
+    /** Structure updates and change determination */
+    @Test
+    public void testUpdate() throws Exception
+    {
+        final PVAStructure time = new PVAStructure("timeStamp", "time_t",
+                                                   new PVALong("secondsPastEpoch"),
+                                                   new PVAInt("nanoseconds"),
+                                                   new PVAInt("userTag"));
+        final PVAStructure data = new PVAStructure("demo", "NTBogus",
+                                                   new PVADouble("value", 3.14),
+                                                   time,
+                                                   new PVAString("extra"),
+                                                   new PVABool("flag"),
+                                                   new PVALongArray("array", false)
+                                                   );
+        final PVAStructure snapshot = data.cloneData();
+        System.out.println(snapshot);
+
+        // Update 1: value
+        final PVADouble value = data.get("value");
+        value.set(value.get() + 1);
+
+        BitSet changes = snapshot.update(data);
+        System.out.println("Changes: " + changes);
+        System.out.println(snapshot);
+
+        final BitSet expected = new BitSet();
+        expected.set(1);
+        assertThat(changes, equalTo(expected));
+
+        // 1: Value, 2: time
+        value.set(value.get() + 1);
+        // secondsPastEpoch, nano, tag
+        data.get(3).setValue(47);
+        data.get(4).setValue(48);
+        data.get(5).setValue(49);
+
+        changes = snapshot.update(data);
+        System.out.println("Changes: " + changes);
+        System.out.println(snapshot);
+
+        expected.clear();
+        expected.set(1);
+        expected.set(2);
+        assertThat(changes, equalTo(expected));
+
+        // 1: Value, 6: extra, 7: flag
+        value.set(value.get() + 1);
+        data.get(6).setValue("Kram");
+        data.get(7).setValue(true);
+
+        changes = snapshot.update(data);
+        System.out.println("Changes: " + changes);
+        System.out.println(snapshot);
+
+        expected.clear();
+        expected.set(1);
+        expected.set(6);
+        expected.set(7);
+        assertThat(changes, equalTo(expected));
+
+        // All
+        value.set(value.get() + 1);
+        data.get(3).setValue(48);
+        data.get(4).setValue(49);
+        data.get(5).setValue(50);
+        data.get(6).setValue("Kram2");
+        data.get(7).setValue(false);
+        data.get(8).setValue(new long[] { 1, 2 });
+
+        changes = snapshot.update(data);
+        System.out.println("Changes: " + changes);
+        System.out.println(snapshot);
+
+        expected.clear();
+        expected.set(0);
+        assertThat(changes, equalTo(expected));
+
+        // Array set to same value, i.e. no change
+        data.get(8).setValue(new long[] { 1, 2 });
+        changes = snapshot.update(data);
+        System.out.println("Changes: " + changes);
+        System.out.println(snapshot);
+
+        expected.clear();
+        assertThat(changes, equalTo(expected));
+
+        // Array set to new value
+        data.get(8).setValue(new long[] { 3, 4 });
+        changes = snapshot.update(data);
+        System.out.println("Changes: " + changes);
+        System.out.println(snapshot);
+
+        expected.clear();
+        expected.set(8);
+        assertThat(changes, equalTo(expected));
     }
 }

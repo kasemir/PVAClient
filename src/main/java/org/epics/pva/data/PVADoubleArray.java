@@ -8,6 +8,7 @@
 package org.epics.pva.data;
 
 import java.nio.ByteBuffer;
+import java.util.Arrays;
 import java.util.BitSet;
 import java.util.List;
 
@@ -19,9 +20,15 @@ public class PVADoubleArray extends PVAData implements PVAArray
 {
     private volatile double[] value;
 
-    public PVADoubleArray(final String name)
+    public PVADoubleArray(final String name, final double[] value)
     {
         super(name);
+        this.value = value;
+    }
+
+    public PVADoubleArray(final String name)
+    {
+        this(name, new double[0]);
     }
 
     /** @return Current value */
@@ -67,6 +74,12 @@ public class PVADoubleArray extends PVAData implements PVAArray
     }
 
     @Override
+    public PVADoubleArray cloneData()
+    {
+        return new PVADoubleArray(name, value.clone());
+    }
+
+    @Override
     public void encodeType(ByteBuffer buffer, BitSet described) throws Exception
     {
         buffer.put((byte) 0b01001011);
@@ -94,6 +107,24 @@ public class PVADoubleArray extends PVAData implements PVAArray
     }
 
     @Override
+    protected int update(final int index, final PVAData new_value, final BitSet changes) throws Exception
+    {
+        if (new_value instanceof PVADoubleArray)
+        {
+            final PVADoubleArray other = (PVADoubleArray) new_value;
+            // At least for open JDK11,
+            // this does use Double.doubleToRawLongBits and thus handles
+            // NaN == NaN
+            if (! Arrays.equals(other.value, value))
+            {
+                value = other.value.clone();
+                changes.set(index);
+            }
+        }
+        return index + 1;
+    }
+
+    @Override
     protected void formatType(final int level, final StringBuilder buffer)
     {
         indent(level, buffer);
@@ -118,5 +149,14 @@ public class PVADoubleArray extends PVAData implements PVAArray
             }
         }
         buffer.append("]");
+    }
+
+    @Override
+    public boolean equals(final Object obj)
+    {
+        if (! (obj instanceof PVADoubleArray))
+            return false;
+        final PVADoubleArray other = (PVADoubleArray) obj;
+        return Arrays.equals(other.value, value);
     }
 }

@@ -8,6 +8,7 @@
 package org.epics.pva.data;
 
 import java.nio.ByteBuffer;
+import java.util.Arrays;
 import java.util.BitSet;
 import java.util.List;
 
@@ -20,10 +21,16 @@ public class PVAByteArray extends PVAData implements PVAArray
     private final boolean unsigned;
     private volatile byte[] value;
 
-    public PVAByteArray(final String name, final boolean unsigned)
+    public PVAByteArray(final String name, final boolean unsigned, final byte[] value)
     {
         super(name);
         this.unsigned = unsigned;
+        this.value = value;
+    }
+
+    public PVAByteArray(final String name, final boolean unsigned)
+    {
+        this(name, unsigned, new byte[0]);
     }
 
     /** @return Is value unsigned? */
@@ -75,6 +82,12 @@ public class PVAByteArray extends PVAData implements PVAArray
     }
 
     @Override
+    public PVAByteArray cloneData()
+    {
+        return new PVAByteArray(name, unsigned, value.clone());
+    }
+
+    @Override
     public void encodeType(ByteBuffer buffer, BitSet described) throws Exception
     {
         if (unsigned)
@@ -102,6 +115,21 @@ public class PVAByteArray extends PVAData implements PVAArray
         PVASize.encodeSize(copy.length, buffer);
         for (int i=0; i<copy.length; ++i)
             buffer.put(copy[i]);
+    }
+
+    @Override
+    protected int update(final int index, final PVAData new_value, final BitSet changes) throws Exception
+    {
+        if (new_value instanceof PVAByteArray)
+        {
+            final PVAByteArray other = (PVAByteArray) new_value;
+            if (! Arrays.equals(other.value, value))
+            {
+                value = other.value.clone();
+                changes.set(index);
+            }
+        }
+        return index + 1;
     }
 
     @Override
@@ -134,5 +162,14 @@ public class PVAByteArray extends PVAData implements PVAArray
             }
         }
         buffer.append("]");
+    }
+
+    @Override
+    public boolean equals(final Object obj)
+    {
+        if (! (obj instanceof PVAByteArray))
+            return false;
+        final PVAByteArray other = (PVAByteArray) obj;
+        return Arrays.equals(other.value, value);
     }
 }

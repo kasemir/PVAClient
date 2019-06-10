@@ -106,7 +106,9 @@ public class PVAInt extends PVANumber
     @Override
     public void setValue(final Object new_value) throws Exception
     {
-        if (new_value instanceof Number)
+        if (new_value instanceof PVANumber)
+            set(((PVANumber) new_value).getNumber().intValue());
+        else if (new_value instanceof Number)
             set(((Number) new_value).intValue());
         else if (new_value instanceof String)
             set(parseString(new_value.toString()).intValue());
@@ -118,6 +120,12 @@ public class PVAInt extends PVANumber
     public PVAInt cloneType(final String name)
     {
         return new PVAInt(name, unsigned);
+    }
+
+    @Override
+    public PVAInt cloneData()
+    {
+        return new PVAInt(name, unsigned, value);
     }
 
     @Override
@@ -142,6 +150,21 @@ public class PVAInt extends PVANumber
     }
 
     @Override
+    protected int update(final int index, final PVAData new_value, final BitSet changes) throws Exception
+    {
+        if (new_value instanceof PVAInt)
+        {
+            final PVAInt other = (PVAInt) new_value;
+            if (other.value != value)
+            {
+                value = other.value;
+                changes.set(index);
+            }
+        }
+        return index + 1;
+    }
+
+    @Override
     protected void formatType(final int level, final StringBuilder buffer)
     {
         indent(level, buffer);
@@ -159,5 +182,14 @@ public class PVAInt extends PVANumber
             buffer.append(Integer.toUnsignedLong(value));
         else
             buffer.append(value);
+    }
+
+    @Override
+    public boolean equals(final Object obj)
+    {
+        if (! (obj instanceof PVAInt))
+            return false;
+        final PVAInt other = (PVAInt) obj;
+        return other.value == value;
     }
 }

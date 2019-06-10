@@ -8,6 +8,7 @@
 package org.epics.pva.data;
 
 import java.nio.ByteBuffer;
+import java.util.Arrays;
 import java.util.BitSet;
 import java.util.List;
 
@@ -20,10 +21,16 @@ public class PVAShortArray extends PVAData implements PVAArray
     private final boolean unsigned;
     private volatile short[] value;
 
-    public PVAShortArray(final String name, final boolean unsigned)
+    public PVAShortArray(final String name, final boolean unsigned, final short[] value)
     {
         super(name);
         this.unsigned = unsigned;
+        this.value = value;
+    }
+
+    public PVAShortArray(final String name, final boolean unsigned)
+    {
+        this(name, unsigned, new short[0]);
     }
 
     /** @return Is value unsigned? */
@@ -75,6 +82,12 @@ public class PVAShortArray extends PVAData implements PVAArray
     }
 
     @Override
+    public PVAShortArray cloneData()
+    {
+        return new PVAShortArray(name, unsigned, value.clone());
+    }
+
+    @Override
     public void encodeType(ByteBuffer buffer, BitSet described) throws Exception
     {
         if (unsigned)
@@ -111,6 +124,21 @@ public class PVAShortArray extends PVAData implements PVAArray
     }
 
     @Override
+    protected int update(final int index, final PVAData new_value, final BitSet changes) throws Exception
+    {
+        if (new_value instanceof PVAShortArray)
+        {
+            final PVAShortArray other = (PVAShortArray) new_value;
+            if (! Arrays.equals(other.value, value))
+            {
+                value = other.value.clone();
+                changes.set(index);
+            }
+        }
+        return index + 1;
+    }
+
+    @Override
     protected void formatType(final int level, final StringBuilder buffer)
     {
         indent(level, buffer);
@@ -140,5 +168,14 @@ public class PVAShortArray extends PVAData implements PVAArray
             }
         }
         buffer.append("]");
+    }
+
+    @Override
+    public boolean equals(final Object obj)
+    {
+        if (! (obj instanceof PVAShortArray))
+            return false;
+        final PVAShortArray other = (PVAShortArray) obj;
+        return Arrays.equals(other.value, value);
     }
 }

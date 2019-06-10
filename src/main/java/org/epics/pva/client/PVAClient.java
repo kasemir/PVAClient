@@ -15,7 +15,9 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
 
+import org.epics.pva.Guid;
 import org.epics.pva.PVASettings;
+import org.epics.pva.network.Network;
 
 /** PVA Client
  *
@@ -38,7 +40,7 @@ public class PVAClient
     /** Default channel listener logs state changes */
     private static final ClientChannelListener DEFAULT_CHANNEL_LISTENER = (ch, state) ->  logger.log(Level.INFO, ch.toString());
 
-    private final UDPHandler udp;
+    private final ClientUDPHandler udp;
 
     final ChannelSearch search;
 
@@ -46,7 +48,7 @@ public class PVAClient
     private final ConcurrentHashMap<Integer, PVAChannel> channels_by_id = new ConcurrentHashMap<>();
 
     /** TCP handlers by server address */
-    private final ConcurrentHashMap<InetSocketAddress, TCPHandler> tcp_handlers = new ConcurrentHashMap<>();
+    private final ConcurrentHashMap<InetSocketAddress, ClientTCPHandler> tcp_handlers = new ConcurrentHashMap<>();
 
     private final AtomicInteger request_ids = new AtomicInteger();
 
@@ -56,7 +58,7 @@ public class PVAClient
         if (search_addresses.isEmpty())
             search_addresses = Network.getBroadcastAddresses(PVASettings.EPICS_PVA_BROADCAST_PORT);
 
-        udp = new UDPHandler(this::handleBeacon, this::handleSearchResponse);
+        udp = new ClientUDPHandler(this::handleBeacon, this::handleSearchResponse);
         if (udp.configureMulticast())
             search_addresses.add(new InetSocketAddress(PVASettings.EPICS_PVA_MULTICAST_GROUP, PVASettings.EPICS_PVA_BROADCAST_PORT));
 
@@ -122,7 +124,7 @@ public class PVAClient
         channels_by_id.remove(channel.getId());
 
         // Did channel have a connection?
-        final TCPHandler tcp = channel.tcp.get();
+        final ClientTCPHandler tcp = channel.tcp.get();
         if (tcp == null)
             return;
 
@@ -131,7 +133,7 @@ public class PVAClient
 
     private void handleBeacon(final InetSocketAddress server, final Guid guid, final int changes)
     {
-        final TCPHandler tcp = tcp_handlers.get(server);
+        final ClientTCPHandler tcp = tcp_handlers.get(server);
         if (tcp == null)
             logger.log(Level.FINER, () -> "Beacon from new server " + server);
         else
@@ -158,11 +160,11 @@ public class PVAClient
         channel.setState(ClientChannelState.FOUND);
         logger.log(Level.FINE, () -> "Reply for " + channel + " from " + server);
 
-        final TCPHandler tcp = tcp_handlers.computeIfAbsent(server, addr ->
+        final ClientTCPHandler tcp = tcp_handlers.computeIfAbsent(server, addr ->
         {
             try
             {
-                return new TCPHandler(this, addr, guid);
+                return new ClientTCPHandler(this, addr, guid);
             }
             catch (Exception ex)
             {
@@ -174,17 +176,17 @@ public class PVAClient
         channel.registerWithServer(tcp);
     }
 
-    /** Called by {@link TCPHandler} when connection is lost or closed because unused
+    /** Called by {@link ClientTCPHandler} when connection is lost or closed because unused
      *
      *  <p>Client should detach all channels that are still on this connection
      *  and re-search them, forget the connection and close it.
      *
      *  @param tcp TCP handler that needs to be closed
      */
-    void shutdownConnection(final TCPHandler tcp)
+    void shutdownConnection(final ClientTCPHandler tcp)
     {
         // Forget this connection
-        final TCPHandler removed = tcp_handlers.remove(tcp.getAddress());
+        final ClientTCPHandler removed = tcp_handlers.remove(tcp.getRemoteAddress());
         if (removed != tcp)
             logger.log(Level.WARNING, "Closed unknown " + tcp, new Exception("Call stack"));
 
@@ -246,7 +248,7 @@ public class PVAClient
         }
 
         // Stop TCP and UDP threads
-        for (TCPHandler handler : tcp_handlers.values())
+        for (ClientTCPHandler handler : tcp_handlers.values())
             handler.close(true);
 
         udp.close();

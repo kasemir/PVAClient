@@ -94,13 +94,22 @@ public class PVAString extends PVAData
     @Override
     public void setValue(final Object new_value) throws Exception
     {
-        set(Objects.toString(new_value));
+        if (new_value instanceof PVAString)
+            set(((PVAString) new_value).get());
+        else
+            set(Objects.toString(new_value));
     }
 
     @Override
     public PVAString cloneType(final String name)
     {
         return new PVAString(name);
+    }
+
+    @Override
+    public PVAString cloneData()
+    {
+        return new PVAString(name, value);
     }
 
     @Override
@@ -122,6 +131,21 @@ public class PVAString extends PVAData
     }
 
     @Override
+    protected int update(final int index, final PVAData new_value, final BitSet changes) throws Exception
+    {
+        if (new_value instanceof PVAString)
+        {
+            final PVAString other = (PVAString) new_value;
+            if (! Objects.equals(other.value, value))
+            {
+                value = other.value;
+                changes.set(index);
+            }
+        }
+        return index + 1;
+    }
+
+    @Override
     protected void formatType(final int level, final StringBuilder buffer)
     {
         indent(level, buffer);
@@ -133,5 +157,14 @@ public class PVAString extends PVAData
     {
         formatType(level, buffer);
         buffer.append(" ").append(value);
+    }
+
+    @Override
+    public boolean equals(final Object obj)
+    {
+        if (! (obj instanceof PVAString))
+            return false;
+        final PVAString other = (PVAString) obj;
+        return other.value.equals(value);
     }
 }

@@ -63,7 +63,7 @@ public class ChannelSearch
     /** Search request sequence number */
     private static final AtomicInteger search_sequence = new AtomicInteger();
 
-    private final UDPHandler udp;
+    private final ClientUDPHandler udp;
 
     /** Basic search period */
     private static final int SEARCH_PERIOD_MS = 225;
@@ -114,7 +114,7 @@ public class ChannelSearch
     /** Address list to which search requests are sent */
     private final List<InetSocketAddress> search_addresses;
 
-    public ChannelSearch(final UDPHandler udp, final List<InetSocketAddress> search_addresses) throws Exception
+    public ChannelSearch(final ClientUDPHandler udp, final List<InetSocketAddress> search_addresses) throws Exception
     {
         this.udp = udp;
         this.search_addresses = search_addresses;

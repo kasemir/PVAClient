@@ -22,9 +22,16 @@ public class PVAStringArray extends PVAData implements PVAArray
     private volatile String[] value = new String[0];
 
     /** Construct variable-size string array */
-    public PVAStringArray(final String name)
+    public PVAStringArray(final String name, final String[] value)
     {
         super(name);
+        this.value = value;
+    }
+
+    /** Construct variable-size string array */
+    public PVAStringArray(final String name)
+    {
+        this(name, new String[0]);
     }
 
     /** @return Current value */
@@ -63,6 +70,12 @@ public class PVAStringArray extends PVAData implements PVAArray
     }
 
     @Override
+    public PVAStringArray cloneData()
+    {
+        return new PVAStringArray(name, value.clone());
+    }
+
+    @Override
     public void encodeType(ByteBuffer buffer, BitSet described) throws Exception
     {
         buffer.put((byte) (PVAString.FIELD_DESC_TYPE | PVAFieldDesc.Array.VARIABLE_SIZE.mask));
@@ -90,6 +103,21 @@ public class PVAStringArray extends PVAData implements PVAArray
     }
 
     @Override
+    protected int update(final int index, final PVAData new_value, final BitSet changes) throws Exception
+    {
+        if (new_value instanceof PVALongArray)
+        {
+            final PVAStringArray other = (PVAStringArray) new_value;
+            if (! Arrays.equals(other.value, value))
+            {
+                value = other.value.clone();
+                changes.set(index);
+            }
+        }
+        return index + 1;
+    }
+
+    @Override
     protected void formatType(final int level, final StringBuilder buffer)
     {
         indent(level, buffer);
@@ -101,5 +129,14 @@ public class PVAStringArray extends PVAData implements PVAArray
     {
         formatType(level, buffer);
         buffer.append(" ").append(Arrays.toString(value));
+    }
+
+    @Override
+    public boolean equals(final Object obj)
+    {
+        if (! (obj instanceof PVAStringArray))
+            return false;
+        final PVAStringArray other = (PVAStringArray) obj;
+        return Arrays.equals(other.value, value);
     }
 }

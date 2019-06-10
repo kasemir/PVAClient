@@ -14,6 +14,7 @@ import java.util.ArrayList;
 import java.util.BitSet;
 import java.util.Collections;
 import java.util.List;
+import java.util.Objects;
 import java.util.logging.Level;
 
 /** PV Access Union
@@ -69,7 +70,7 @@ public class PVAUnion extends PVADataWithID
         this.elements = Collections.unmodifiableList(elements);
     }
 
-    /** @return Selected element of the union */
+    /** @return Selected element of the union, <code>null</code> if none */
     @SuppressWarnings("unchecked")
     public <PVA extends PVAData> PVA get()
     {
@@ -122,6 +123,19 @@ public class PVAUnion extends PVADataWithID
             copy.add(element.cloneType(element.getName()));
         final PVAUnion clone = new PVAUnion(name, union_name, copy);
         clone.type_id = type_id;
+        return clone;
+    }
+
+    @Override
+    public PVAUnion cloneData()
+    {
+        final List<PVAData> copy = new ArrayList<>(elements.size());
+        // Deep copy
+        for (PVAData element : elements)
+            copy.add(element.cloneData());
+        final PVAUnion clone = new PVAUnion(name, union_name, copy);
+        clone.type_id = type_id;
+        clone.selected = selected;
         return clone;
     }
 
@@ -181,6 +195,25 @@ public class PVAUnion extends PVADataWithID
     }
 
     @Override
+    protected int update(final int index, final PVAData new_value, final BitSet changes) throws Exception
+    {
+        if (new_value instanceof PVAUnion)
+        {
+            final PVAUnion other = (PVAUnion) new_value;
+            if (! Objects.equals(other.get(), get()))
+            {
+                if (other.elements.size() != elements.size())
+                    throw new Exception("Incompatible unions");
+                selected = other.selected;
+                if (selected > 0)
+                    elements.set(selected, other.get().cloneData());
+                changes.set(index);
+            }
+        }
+        return index + 1;
+    }
+
+    @Override
     public void formatType(int level, StringBuilder buffer)
     {
         indent(level, buffer);
@@ -214,5 +247,16 @@ public class PVAUnion extends PVADataWithID
             buffer.append("\n");
             elements.get(selected).format(level+1, buffer);
         }
+    }
+
+    @Override
+    public boolean equals(final Object obj)
+    {
+        if (! (obj instanceof PVAUnion))
+            return false;
+        final PVAUnion other = (PVAUnion) obj;
+        // Compare the selected element, which may be null.
+        // Equality of non-selected elements is ignored.
+        return Objects.equals(other.get(), get());
     }
 }

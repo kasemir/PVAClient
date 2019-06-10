@@ -9,9 +9,11 @@ package org.epics.pva.client;
 
 import java.nio.ByteBuffer;
 
+import org.epics.pva.network.RequestEncoder;
+
 /** Handler for response from server.
  *
- *  <p>Can be provided to {@link TCPHandler} when submitting a {@link RequestEncoder}.
+ *  <p>Can be provided to {@link ClientTCPHandler} when submitting a {@link RequestEncoder}.
  *
  *  @author Kay Kasemir
  */
@@ -22,18 +24,14 @@ interface ResponseHandler
 
     /** Handle response received from server
      *
-     *  <p>{@link TCPHandler} calls this when it
+     *  <p>{@link ClientTCPHandler} calls this when it
      *  receives a reply to the request ID.
      *
      *  <p>Implementation has ownership of the 'receive'
      *  buffer while inside this method.
-     *  The buffer may contain more data than just the response
-     *  for this handler, so implementation should check
-     *  payload size.
      *
      *  @param buffer Buffer from which to decode response
-     *  @param payload_size Size of payload for this handler
      *  @throws Exception on error
      */
-    public void handleResponse(ByteBuffer buffer, int payload_size) throws Exception;
+    public void handleResponse(ByteBuffer buffer) throws Exception;
 }

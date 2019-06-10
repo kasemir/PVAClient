@@ -19,10 +19,16 @@ public class PVAShort extends PVANumber
     private final boolean unsigned;
     private volatile short value;
 
-    public PVAShort(final String name, final boolean unsigned)
+    public PVAShort(final String name, final boolean unsigned, final short value)
     {
         super(name);
         this.unsigned = unsigned;
+        this.value = value;
+    }
+
+    public PVAShort(final String name, final boolean unsigned)
+    {
+        this(name, unsigned, (short)0);
     }
 
     /** @return Is value unsigned? */
@@ -52,7 +58,9 @@ public class PVAShort extends PVANumber
     @Override
     public void setValue(final Object new_value) throws Exception
     {
-        if (new_value instanceof Number)
+        if (new_value instanceof PVANumber)
+            set(((PVANumber) new_value).getNumber().shortValue());
+        else if (new_value instanceof Number)
             set(((Number) new_value).shortValue());
         else if (new_value instanceof String)
             set(parseString(new_value.toString()).shortValue());
@@ -64,6 +72,12 @@ public class PVAShort extends PVANumber
     public PVAShort cloneType(final String name)
     {
         return new PVAShort(name, unsigned);
+    }
+
+    @Override
+    public PVAShort cloneData()
+    {
+        return new PVAShort(name, unsigned, value);
     }
 
     @Override
@@ -88,6 +102,21 @@ public class PVAShort extends PVANumber
     }
 
     @Override
+    protected int update(final int index, final PVAData new_value, final BitSet changes) throws Exception
+    {
+        if (new_value instanceof PVAShort)
+        {
+            final PVAShort other = (PVAShort) new_value;
+            if (other.value != value)
+            {
+                value = other.value;
+                changes.set(index);
+            }
+        }
+        return index + 1;
+    }
+
+    @Override
     protected void formatType(final int level, final StringBuilder buffer)
     {
         indent(level, buffer);
@@ -105,5 +134,14 @@ public class PVAShort extends PVANumber
             buffer.append(Short.toUnsignedInt(value));
         else
             buffer.append(value);
+    }
+
+    @Override
+    public boolean equals(final Object obj)
+    {
+        if (! (obj instanceof PVAShort))
+            return false;
+        final PVAShort other = (PVAShort) obj;
+        return other.value == value;
     }
 }

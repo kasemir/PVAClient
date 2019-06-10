@@ -18,16 +18,11 @@ import org.epics.pva.data.PVABitSet;
 import org.epics.pva.data.PVAData;
 import org.epics.pva.data.PVAStatus;
 import org.epics.pva.data.PVAStructure;
+import org.epics.pva.network.RequestEncoder;
 
 @SuppressWarnings("nls")
 class MonitorRequest implements RequestEncoder, ResponseHandler
 {
-    /** Sub command to (re)start getting values */
-    private static final byte START = 0x44;
-
-    /** Sub command to stop/pause */
-    private static final byte STOP = 0x04;
-
     private final PVAChannel channel;
 
     private final String request;
@@ -39,7 +34,7 @@ class MonitorRequest implements RequestEncoder, ResponseHandler
     /** Next request to send, cycling from INIT to START.
      *  Cancel() then sets it to DESTROY.
      */
-    private volatile byte state = GetRequest.INIT;
+    private volatile byte state = PVAHeader.CMD_SUB_INIT;
 
     private volatile PVAStructure data;
 
@@ -61,7 +56,7 @@ class MonitorRequest implements RequestEncoder, ResponseHandler
     @Override
     public void encodeRequest(final byte version, final ByteBuffer buffer) throws Exception
     {
-        if (state == GetRequest.INIT)
+        if (state == PVAHeader.CMD_SUB_INIT)
         {
             logger.log(Level.FINE, () -> "Sending monitor INIT request #" + request_id + " for " + channel + " '" + request + "'");
 
@@ -70,7 +65,7 @@ class MonitorRequest implements RequestEncoder, ResponseHandler
             PVAHeader.encodeMessageHeader(buffer, PVAHeader.FLAG_NONE, PVAHeader.CMD_MONITOR, 4+4+1+6);
             buffer.putInt(channel.sid);
             buffer.putInt(request_id);
-            buffer.put(GetRequest.INIT);
+            buffer.put(PVAHeader.CMD_SUB_INIT);
 
             final FieldRequest field_request = new FieldRequest(request);
             final int request_size = field_request.encodeType(buffer);
@@ -78,9 +73,9 @@ class MonitorRequest implements RequestEncoder, ResponseHandler
         }
         else
         {
-            if (state == START)
+            if (state == PVAHeader.CMD_SUB_START)
                 logger.log(Level.FINE, () -> "Sending monitor START request #" + request_id + " for " + channel);
-            else if (state == STOP)
+            else if (state == PVAHeader.CMD_SUB_STOP)
                 logger.log(Level.FINE, () -> "Sending monitor STOP request #" + request_id + " for " + channel);
             else if (state == GetRequest.DESTROY)
                 logger.log(Level.FINE, () -> "Sending monitor DESTROY request #" + request_id + " for " + channel);
@@ -94,9 +89,9 @@ class MonitorRequest implements RequestEncoder, ResponseHandler
     }
 
     @Override
-    public void handleResponse(final ByteBuffer buffer, final int payload_size) throws Exception
+    public void handleResponse(final ByteBuffer buffer) throws Exception
     {
-        if (payload_size < 4+1+1)
+        if (buffer.remaining() < 4+1+1)
             throw new Exception("Incomplete Monitor Response");
         final int request_id = buffer.getInt();
         final byte subcmd = buffer.get();
@@ -111,7 +106,7 @@ class MonitorRequest implements RequestEncoder, ResponseHandler
                 return;
             }
 
-            if (subcmd == GetRequest.INIT)
+            if (subcmd == PVAHeader.CMD_SUB_INIT)
             {
                 logger.log(Level.FINE,
                            () -> "Received monitor INIT reply #" + request_id +
@@ -131,7 +126,7 @@ class MonitorRequest implements RequestEncoder, ResponseHandler
                 }
 
                 // Submit request again, this time to START getting data
-                state = START;
+                state = PVAHeader.CMD_SUB_START;
                 channel.getTCP().submit(this, this);
             }
             else
@@ -152,12 +147,12 @@ class MonitorRequest implements RequestEncoder, ResponseHandler
 
             // Decode data from GET reply
             // 1) Bitset that indicates which elements of struct have changed
-            final BitSet changes = PVABitSet.getBitSet(buffer);
+            final BitSet changes = PVABitSet.decodeBitSet(buffer);
 
             // 2) Decode those elements
             data.decodeElements(changes, channel.getTCP().getTypeRegistry(), buffer);
 
-            final BitSet overrun = PVABitSet.getBitSet(buffer);
+            final BitSet overrun = PVABitSet.decodeBitSet(buffer);
             logger.log(Level.FINER, () -> "Overruns: " + overrun);
 
             // Notify listener of latest value
@@ -169,9 +164,9 @@ class MonitorRequest implements RequestEncoder, ResponseHandler
     {
         // Submit request again, this time to START getting data
         state = GetRequest.DESTROY;
-        final TCPHandler tcp = channel.getTCP();
+        final ClientTCPHandler tcp = channel.getTCP();
         tcp.submit(this, this);
         // Not expecting more replies
-        tcp.removeHandler(this);
+        tcp.removeResponseHandler(request_id);
     }
 }
