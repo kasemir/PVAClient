@@ -226,8 +226,8 @@ public class PVAClient
         // Stop searching for missing channels
         search.close();
 
-        // Assume caller has closed channels, wait for that
-        int wait = 50;
+        // Assume caller has closed channels, wait 2 seconds for that to be confirmed
+        int wait = 20;
         while (! channels_by_id.isEmpty())
         {
             if (--wait > 0)
@@ -241,7 +241,8 @@ public class PVAClient
                 }
             else
             {
-                // Warn and move on
+                // Channels_by_id might still contain channels for which
+                // the server is not able to confirm channel deletion.
                 logger.log(Level.WARNING, "PVA Client closed with remaining channels: " + channels_by_id.values());
                 break;
             }

@@ -84,12 +84,10 @@ public class ClientDemo
         System.out.println("Gave up connecting to " + ch);
         ch.close();
 
-        // TODO This waits for the CLOSING channel...
         pva.close();
         final long done = System.currentTimeMillis();
-        // assertTrue(done - timeout < 1000);
+        assertTrue(done - timeout < 1000);
     }
-
 
     @Test
     public void testSimplestGet() throws Exception

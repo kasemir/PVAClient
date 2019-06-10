@@ -24,11 +24,11 @@ import org.epics.pva.data.PVAStructure;
  *
  *  <p>Obtained from {@link PVAClient#getChannel()}.
  *  Allows reading and writing a channel's data.
- *  
+ *
  *  <p>Channel 'connects' automatically.
  *  A listener will be informed when connection state changes,
  *  with helpers to await connection or check current connection state.
- *  
+ *
  *  @author Kay Kasemir
  */
 @SuppressWarnings("nls")
@@ -50,7 +50,7 @@ public class PVAChannel
 
     /** Completes with <code>true</code> when state == CONNECTED */
     private CompletableFuture<Boolean> connected = new CompletableFuture<>();
-    
+
     /** TCP Handler, set by PVAClient */
     final AtomicReference<ClientTCPHandler> tcp = new AtomicReference<>();
 
@@ -91,7 +91,7 @@ public class PVAChannel
     {
         return state.get();
     }
-    
+
     /** @return <code>true</code> if channel is connected */
     public boolean isConnected()
     {
@@ -107,7 +107,7 @@ public class PVAChannel
     {
         return connected;
     }
-    
+
     /** Set channel state, notify listeners on change
      *  @param new_state
      *  @return old state
@@ -121,7 +121,7 @@ public class PVAChannel
                 connected.complete(true);
             else if (old == ClientChannelState.CONNECTED)
                 connected = new CompletableFuture<>();
-            
+
             synchronized (state)
             {
                 state.notifyAll();
@@ -286,13 +286,20 @@ public class PVAChannel
         client.search.unregister(getId());
 
         // Indicate that channel is closing
-        setState(ClientChannelState.CLOSING);
-
-        // Try to destroy channel on server,
-        // but depending on situation that may no longer reach the server
-        final ClientTCPHandler safe = tcp.get();
-        if (safe != null)
-            safe.submit(new DestroyChannelRequest(this));
+        final ClientChannelState old_state = setState(ClientChannelState.CLOSING);
+        if (old_state == ClientChannelState.SEARCHING)
+        {   // Not connected, so forget the channel
+            client.forgetChannel(this);
+        }
+        else
+        {   // Try to destroy channel on server.
+            // If we can still reach the server, it should confirm deletion,
+            // and the client can then forget the channel.
+            // Depending on situation, however, we may no longer reach the server.
+            final ClientTCPHandler safe = tcp.get();
+            if (safe != null)
+                safe.submit(new DestroyChannelRequest(this));
+        }
     }
 
     @Override
