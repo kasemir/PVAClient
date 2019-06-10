@@ -15,9 +15,10 @@ import java.util.logging.Level;
 
 import org.epics.pva.PVAHeader;
 import org.epics.pva.data.PVABitSet;
+import org.epics.pva.data.PVAData;
 import org.epics.pva.data.PVAStructure;
 
-/** One client's subscription to a PV
+/** One client's subscription to "monitor" a PV
  *
  *  <p>Maintains the most recent value sent to client,
  *  sends changes to that client as the value is updated.
@@ -30,14 +31,24 @@ class MonitorSubscription
     /** ID of monitor request sent by client */
     private final int req;
 
+    /** The PV */
     private final ServerPV pv;
 
+    /** TCP connection to client */
     private final ServerTCPHandler tcp;
 
+    // Clients subscribe at different times,
+    // and their TCP connection might be able to handle updates
+    // at different rates, so each subscription maintains
+    // the per-client state of the data, changes and overruns.
+
+    /** Most recent value, to be sent to clients */
     private final PVAStructure data;
 
+    /** Most recent changes, yet to be sent to clients */
     private volatile BitSet changes;
 
+    /** Overruns, u.e. updates received between successful transmissions to client */
     private final BitSet overrun = new BitSet();
 
     MonitorSubscription(final int req, final ServerPV pv, final ServerTCPHandler tcp)
@@ -74,13 +85,25 @@ class MonitorSubscription
         // Subcommand 0 = value update
         buffer.put((byte)0);
 
-        // TODO Encode just what changed
-        final BitSet all = new BitSet();
-        all.set(0);
-        PVABitSet.encodeBitSet(all, buffer);
+        // Encode what changed
+        PVABitSet.encodeBitSet(changes, buffer);
+        // Encode the changed data
+        for (int index = changes.nextSetBit(0);
+             index >= 0;
+             index = changes.nextSetBit(index + 1))
+        {
+            // final version of index to allow use in logging lambdas
+            final int i = index;
+            final PVAData element = data.get(i);
+            logger.log(Level.FINER, () -> "Encode data for indexed element " + i + ": " + element);
+            element.encode(buffer);
 
-        pv.getData().encode(buffer);
-
+            // Javadoc for nextSetBit() suggests checking for MAX_VALUE
+            // to avoid index + 1 overflow and thus starting over with first bit
+            if (i == Integer.MAX_VALUE)
+                break;
+        }
+        changes.clear();
 
         PVABitSet.encodeBitSet(overrun, buffer);
 
