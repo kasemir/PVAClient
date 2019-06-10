@@ -7,11 +7,14 @@
  ******************************************************************************/
 package org.epics.pva.server;
 
+import java.time.Instant;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.LogManager;
 
 import org.epics.pva.PVASettings;
 import org.epics.pva.data.PVADouble;
+import org.epics.pva.data.PVAInt;
+import org.epics.pva.data.PVALong;
 import org.epics.pva.data.PVAString;
 import org.epics.pva.data.PVAStructure;
 
@@ -27,11 +30,23 @@ public class ServerDemo
 
         final PVAServer server = new PVAServer();
 
+        final PVALong secs = new PVALong("secondsPastEpoch", false, 0);
+        final PVAInt nano = new PVAInt("nanoseconds", false,  0);
+        final PVAStructure time = new PVAStructure("timeStamp", "time_t",
+                                                   secs,
+                                                   nano,
+                                                   new PVAInt("userTag", 0));
+
         final PVAStructure data = new PVAStructure("demo", "demo_t",
                                                    new PVADouble("value", 3.13),
-                                                   new PVAString("tag",   "Hello!"));
+                                                   new PVAString("tag",   "Hello!"),
+                                                   time);
+        Instant now = Instant.now();
+        secs.set(now.getEpochSecond());
+        nano.set(now.getNano());
         final ServerPV pv = server.createPV("demo", data);
-        for (int i=0; i<30; ++i)
+        final ServerPV pv2 = server.createPV("demo2", data);
+        for (int i=0; i<30000; ++i)
         {
             TimeUnit.SECONDS.sleep(1);
 
@@ -42,10 +57,13 @@ public class ServerDemo
             // and determines which elements of the data have changed.
             final PVADouble value = data.get("value");
             value.set(value.get() + 1);
-            pv.update(data);
 
-            // Throw exception if update doesn't match served data
-            // pv.update(new PVAInt("xx", 47));
+            now = Instant.now();
+            secs.set(now.getEpochSecond());
+            nano.set(now.getNano());
+
+            pv.update(data);
+            pv2.update(data);
 
 
             // Alternative 1:
@@ -71,6 +89,18 @@ public class ServerDemo
             // and has no type information
 
             // pv.update(1, 10.0*i, 2, "Hello #" + i);
+        }
+
+        // Throw exception if update doesn't match served data
+        try
+        {
+            pv.update(new PVAStructure("xx", "xxx", new PVAInt("xx", 47)));
+        }
+        catch (Exception ex)
+        {
+            // Expected
+            if (! ex.getMessage().toLowerCase().contains("incompatibl"))
+                throw ex;
         }
 
         server.close();

@@ -73,23 +73,31 @@ public class PVAHeader
     /** Application command: Get data */
     public static final byte CMD_MONITOR = 0x0D;
 
+    /** Application command: Destroy Request */
+    public static final byte CMD_DESTROY_REQUEST = 0x0F;
+
     /** Application command: Get type info */
     public static final byte CMD_GET_TYPE = 0x11;
 
     /** Application command: Cancel request */
     public static final byte CMD_CANCEL = 0x15;
 
-    
+
+
+
     /** Sub command to initialize GET/PUT/MONITOR (get data description) */
     public static final byte CMD_SUB_INIT = 0x08;
 
     /** Sub command to (re)start getting monitor values */
     public static final byte CMD_SUB_START = 0x44;
-    
+
     /** Sub command to stop/pause a monitor*/
     public static final byte CMD_SUB_STOP = 0x04;
 
-    
+    /** Sub command delete a request GET/PUT/MONITOR */
+    public static final byte CMD_SUB_DESTROY = 0x10;
+
+
     /** Control message command to set byte order */
     public static final byte CTRL_SET_BYTE_ORDER = 2;
 
@@ -119,7 +127,7 @@ public class PVAHeader
         buffer.put(command);
         buffer.putInt(payload_size);
     }
-    
+
     /** Check message header for correct protocol identifier and version
      *  @param buffer Buffer as start of protocol header
      *  @param expect_server Expect a server message? Else client message

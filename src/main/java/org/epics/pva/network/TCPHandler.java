@@ -250,7 +250,7 @@ abstract public class TCPHandler
             {
                 // Read at least one complete message,
                 // which requires the header..
-                int message_size = PVAHeader.checkMessageAndGetSize(receive_buffer, true);
+                int message_size = PVAHeader.checkMessageAndGetSize(receive_buffer, client_mode);
                 while (receive_buffer.position() < message_size)
                 {
                     checkReceiveBufferSize(message_size);

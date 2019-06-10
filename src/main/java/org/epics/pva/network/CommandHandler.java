@@ -9,21 +9,23 @@ package org.epics.pva.network;
 
 import java.nio.ByteBuffer;
 
+import org.epics.pva.PVAHeader;
+
 /** Handler for a PVA command received via {@link TCPHandler}
  *  @author Kay Kasemir
  */
 public interface CommandHandler<TCP extends TCPHandler>
 {
-    /** @return Command that this handler handles */
+    /** @return {@link PVAHeader} <code>CMD_...</code> Command code that this handler handles */
     public byte getCommand();
-    
+
     /** Handle a command
-     * 
+     *
      *  <p>Implementation has ownership of the 'receive'
      *  buffer while inside this method.
      *  When implementation returns, the {@link TCPHandler}
      *  re-uses the buffer.
-     *  
+     *
      *  @param tcp {@link TCPHandler} that received the message
      *  @param buffer Buffer positioned on message for command
      *  @throws Exception on error

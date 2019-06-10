@@ -24,9 +24,6 @@ import org.epics.pva.network.RequestEncoder;
 @SuppressWarnings("nls")
 class GetRequest extends CompletableFuture<PVAStructure> implements RequestEncoder, ResponseHandler
 {
-    /** Sub command delete the request with last GET/PUT/.. */
-    static final byte DESTROY = 0x10;
-
     private final PVAChannel channel;
 
     private final String request;
@@ -89,7 +86,7 @@ class GetRequest extends CompletableFuture<PVAStructure> implements RequestEncod
             PVAHeader.encodeMessageHeader(buffer, PVAHeader.FLAG_NONE, PVAHeader.CMD_GET, 4+4+1);
             buffer.putInt(channel.sid);
             buffer.putInt(request_id);
-            buffer.put(DESTROY);
+            buffer.put(PVAHeader.CMD_SUB_DESTROY);
         }
     }
 

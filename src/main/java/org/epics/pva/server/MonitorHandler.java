@@ -60,10 +60,16 @@ class MonitorHandler implements CommandHandler<ServerTCPHandler>
             // Register monitor to PV can keep sending updates as data changes
             pv.register(new MonitorSubscription(req, pv, tcp));
         }
+        else if (subcmd == PVAHeader.CMD_SUB_STOP  ||
+                 subcmd == PVAHeader.CMD_SUB_DESTROY)
+        {
+            logger.log(Level.FINE, () -> "Received MONITOR STOP/DESTROY for  " + pv);
+            // Stop/cancel/remove subscription
+            pv.unregister(req, tcp);
+        }
         else
         {
-            logger.log(Level.FINE, () -> "Received MONITOR for " + pv + ", subcommand " + subcmd);
-            // sendGetReply(req, pv);
+            logger.log(Level.WARNING, () -> "Ignoring MONITOR request for " + pv + ", subcommand " + subcmd);
         }
     }
 }

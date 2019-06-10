@@ -51,10 +51,9 @@ public class PVAServer
     /** Handlers for the TCP connections clients established to this server */
     private final KeySetView<ServerTCPHandler, Boolean> tcp_handlers = ConcurrentHashMap.newKeySet();
 
-
+    /** Create PVA Server */
     public PVAServer() throws Exception
     {
-
         udp = new ServerUDPHandler(this::handleSearchRequest);
         tcp = new ServerTCPListener(this);
     }

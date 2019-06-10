@@ -99,7 +99,7 @@ class PutRequest extends CompletableFuture<Void> implements RequestEncoder, Resp
             final int pos = buffer.position();
             buffer.putInt(channel.sid);
             buffer.putInt(request_id);
-            buffer.put((byte)(PUT | GetRequest.DESTROY));
+            buffer.put((byte)(PUT | PVAHeader.CMD_SUB_DESTROY));
 
             // Locate the 'value' field
             PVAData field = data.get("value");
@@ -164,7 +164,7 @@ class PutRequest extends CompletableFuture<Void> implements RequestEncoder, Resp
             // Submit request again, this time to PUT data
             channel.getTCP().submit(this, this);
         }
-        else if (subcmd == ((byte)(PUT | GetRequest.DESTROY)))
+        else if (subcmd == ((byte)(PUT | PVAHeader.CMD_SUB_DESTROY)))
         {
             logger.log(Level.FINE,
                     () -> "Received put PUT reply #" + request_id +

@@ -23,6 +23,9 @@ import java.util.logging.Level;
 
 import org.epics.pva.PVASettings;
 
+/** Network helpers
+ *  @author Kay Kasemir
+ */
 @SuppressWarnings("nls")
 public class Network
 {
@@ -70,7 +73,9 @@ public class Network
         return addresses;
     }
 
-
+    /** @param search_addresses Array of "IP:port" or just "IP", defaulting to {@link PVASettings#EPICS_PVA_BROADCAST_PORT}
+     *  @return {@link InetSocketAddress} list
+     */
     public static List<InetSocketAddress> parseAddresses(final String... search_addresses)
     {
         final List<InetSocketAddress> addresses = new ArrayList<>();
@@ -116,9 +121,9 @@ public class Network
 
         return null;
     }
-    
+
     /** Create UDP channel
-     * 
+     *
      *  @param broadcast Support broadcast?
      *  @param port Port to use or 0 to auto-assign
      *  @return
@@ -135,7 +140,7 @@ public class Network
         udp.bind(new InetSocketAddress(port));
         return udp;
     }
-    
+
     /** Try to listen to multicast messages
      *  @return Found support for multicast?
      */
@@ -162,5 +167,4 @@ public class Network
         }
         return true;
     }
-
 }

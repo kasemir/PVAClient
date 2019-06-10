@@ -26,9 +26,10 @@ public class CommandHandlers<TCP extends TCPHandler>
     // Relies on the fact that commands are currently
     // small numbers (up to ~0x15).
     // If commands covered a wider range,
-    //  Map<Integer, CommandHandler> would be the next option.
+    //    Map<Integer, CommandHandler>
+    // would be the next option.
     private final List<CommandHandler<TCP>> dispatch = new ArrayList<>();
-    
+
     /** Build command dispatcher
      *  @param handlers {@link CommandHandler}s
      */
@@ -46,9 +47,9 @@ public class CommandHandlers<TCP extends TCPHandler>
             dispatch.set(command, handler);
         }
     }
-    
+
     /** Invoke handler for a command
-     * 
+     *
      *  @param command The command
      *  @param tcp The {@link TCPHandler} that can be used to e.g. submit another request
      *  @param buffer Buffer positioned on command header

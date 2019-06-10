@@ -24,7 +24,10 @@ public class ServerPV
     private final String name;
     private final int sid;
 
-    // TODO Describe Locking
+    /** Current value
+     *
+     *  <p>Updates need to SYNC on data
+     */
     private final PVAStructure data;
 
     /** All the 'monitor' subscriptions to this PV */
@@ -46,6 +49,16 @@ public class ServerPV
     void register(final MonitorSubscription subscription)
     {
         subscriptions.add(subscription);
+    }
+
+    void unregister(int req, ServerTCPHandler tcp)
+    {
+        for (MonitorSubscription subscription : subscriptions)
+            if (subscription.isFor(tcp, req))
+            {
+                subscriptions.remove(subscription);
+                break;
+            }
     }
 
     /** Update the PV's data
@@ -70,9 +83,9 @@ public class ServerPV
             subscription.update(new_data);
     }
 
-    // TODO Locking
-    // Data is accessed when clients request it,
-    // and when code updates it in the server
+    /** Get current value
+     *  @return PV's current data
+     */
     PVAStructure getData()
     {
         synchronized (data)

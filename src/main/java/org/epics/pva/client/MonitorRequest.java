@@ -77,7 +77,7 @@ class MonitorRequest implements RequestEncoder, ResponseHandler
                 logger.log(Level.FINE, () -> "Sending monitor START request #" + request_id + " for " + channel);
             else if (state == PVAHeader.CMD_SUB_STOP)
                 logger.log(Level.FINE, () -> "Sending monitor STOP request #" + request_id + " for " + channel);
-            else if (state == GetRequest.DESTROY)
+            else if (state == PVAHeader.CMD_SUB_DESTROY)
                 logger.log(Level.FINE, () -> "Sending monitor DESTROY request #" + request_id + " for " + channel);
             else
                 throw new Exception("Cannot handle monitor state " + state);
@@ -162,8 +162,8 @@ class MonitorRequest implements RequestEncoder, ResponseHandler
 
     public void cancel() throws Exception
     {
-        // Submit request again, this time to START getting data
-        state = GetRequest.DESTROY;
+        // Submit request again, this time to stop getting data
+        state = PVAHeader.CMD_SUB_DESTROY;
         final ClientTCPHandler tcp = channel.getTCP();
         tcp.submit(this, this);
         // Not expecting more replies

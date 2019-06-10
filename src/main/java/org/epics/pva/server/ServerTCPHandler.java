@@ -31,6 +31,8 @@ class ServerTCPHandler extends TCPHandler
                               new CreateChannelHandler(),
                               new GetHandler(),
                               new MonitorHandler(),
+                              new DestroyChannelHandler(),
+                              new DestroyRequestHandler(),
                               new CancelHandler());
 
     /** Server that holds all the PVs */
