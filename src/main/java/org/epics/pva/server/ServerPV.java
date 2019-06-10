@@ -7,6 +7,8 @@
  ******************************************************************************/
 package org.epics.pva.server;
 
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentHashMap.KeySetView;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.epics.pva.data.PVAStructure;
@@ -21,7 +23,12 @@ public class ServerPV
 
     private final String name;
     private final int sid;
-    private volatile PVAStructure data;
+
+    // TODO Describe Locking
+    private final PVAStructure data;
+
+    /** All the 'monitor' subscriptions to this PV */
+    private final KeySetView<MonitorSubscription, Boolean> subscriptions = ConcurrentHashMap.newKeySet();
 
     ServerPV(final String name, final PVAStructure data)
     {
@@ -35,6 +42,12 @@ public class ServerPV
         return sid;
     }
 
+    /** @param subscription Subscription that needs to receive value updates */
+    void register(final MonitorSubscription subscription)
+    {
+        subscriptions.add(subscription);
+    }
+
     /** Update the PV's data
      *
      *  <p>The new data is used to update the current
@@ -43,11 +56,18 @@ public class ServerPV
      *  creating the PV on the server.
      *
      *  @param new_data New data to serve
+     *  @throws Exception on error
      */
-    public void update(final PVAStructure new_data)
+    public void update(final PVAStructure new_data) throws Exception
     {
-        // TODO Auto-generated method stub
-        // Lock data, update subscriptions, unlock
+        // Update data
+        synchronized (data)
+        {
+            data.update(new_data);
+        }
+        // Update subscriptions
+        for (MonitorSubscription subscription : subscriptions)
+            subscription.update(new_data);
     }
 
     // TODO Locking
@@ -55,7 +75,10 @@ public class ServerPV
     // and when code updates it in the server
     PVAStructure getData()
     {
-        return data;
+        synchronized (data)
+        {
+            return data.cloneData();
+        }
     }
 
     @Override

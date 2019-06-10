@@ -10,11 +10,9 @@ package org.epics.pva.server;
 import static org.epics.pva.PVASettings.logger;
 
 import java.nio.ByteBuffer;
-import java.util.BitSet;
 import java.util.logging.Level;
 
 import org.epics.pva.PVAHeader;
-import org.epics.pva.data.PVABitSet;
 import org.epics.pva.data.PVAData;
 import org.epics.pva.network.CommandHandler;
 
@@ -35,19 +33,19 @@ class MonitorHandler implements CommandHandler<ServerTCPHandler>
     {
         if (buffer.remaining() < 4+4+1)
             throw new Exception("Incomplete MONITOR, only " + buffer.remaining());
-        
+
         // int serverChannelID;
         final int sid = buffer.getInt();
         final ServerPV pv = tcp.getServer().getPV(sid);
         if (pv == null)
             throw new Exception("MONITOR request for unknown PV sid " + sid);
-        
+
         // int requestID
         final int req = buffer.getInt();
-        
+
         // byte sub command = 0x08 for INIT
         final byte subcmd = buffer.get();
-        
+
         if (subcmd == PVAHeader.CMD_SUB_INIT)
         {
             // FieldDesc pvRequestIF
@@ -59,34 +57,10 @@ class MonitorHandler implements CommandHandler<ServerTCPHandler>
         else if (subcmd == PVAHeader.CMD_SUB_START)
         {
             logger.log(Level.FINE, () -> "Received MONITOR START for " + pv);
-                        
-            // Initial update
-            // TODO Remember monitor, keep sending updates as data changes
-            tcp.submit((version, buf) ->
-            {
-                logger.log(Level.FINE, () -> "Sending initial MONITOR value " + pv);
-
-                PVAHeader.encodeMessageHeader(buf, PVAHeader.FLAG_SERVER, PVAHeader.CMD_MONITOR, 0);
-                final int payload_start = buf.position();
-                
-                buf.putInt(req);
-                // Subcommand 0 = value update
-                buf.put((byte)0);
-                
-                // Indicate change in top-level structure
-                final BitSet changes = new BitSet();
-                changes.set(0);
-                PVABitSet.encodeBitSet(changes, buf);
-                
-                pv.getData().encode(buf);
-                final BitSet overrun = new BitSet();
-                PVABitSet.encodeBitSet(overrun, buf);
-                
-                final int payload_end = buf.position();
-                buf.putInt(PVAHeader.HEADER_OFFSET_PAYLOAD_SIZE, payload_end - payload_start);
-            });
+            // Register monitor to PV can keep sending updates as data changes
+            pv.register(new MonitorSubscription(req, pv, tcp));
         }
-        else 
+        else
         {
             logger.log(Level.FINE, () -> "Received MONITOR for " + pv + ", subcommand " + subcmd);
             // sendGetReply(req, pv);

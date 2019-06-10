@@ -48,7 +48,7 @@ public class PVAServer
     /** TCP connection listener, creates {@link ServerTCPHandler} for each connecting client */
     private final ServerTCPListener tcp;
 
-    /** Handlers for the TCP connections clients estabished to this server */
+    /** Handlers for the TCP connections clients established to this server */
     private final KeySetView<ServerTCPHandler, Boolean> tcp_handlers = ConcurrentHashMap.newKeySet();
 
 
