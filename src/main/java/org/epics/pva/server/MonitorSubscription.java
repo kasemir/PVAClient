@@ -46,7 +46,7 @@ class MonitorSubscription
     private final PVAStructure data;
 
     /** Most recent changes, yet to be sent to clients */
-    private volatile BitSet changes;
+    private volatile BitSet changes = new BitSet();
 
     /** Overruns, u.e. updates received between successful transmissions to client */
     private final BitSet overrun = new BitSet();
@@ -66,9 +66,15 @@ class MonitorSubscription
 
     void update(final PVAStructure new_data) throws Exception
     {
-        // TODO Accumulate overrun
+        final BitSet old_changes = changes;
 
+        // Update data, see what's new
         changes = data.update(new_data);
+
+        // Accumulate overrun:
+        // See what had changed before, and now changed again
+        old_changes.and(changes);
+        overrun.or(old_changes);
 
         // TODO Only submit when there's not already one pending, waiting to be sent out
         tcp.submit(this::encodeMonitor);
@@ -76,7 +82,7 @@ class MonitorSubscription
 
     private void encodeMonitor(final byte version, final ByteBuffer buffer) throws Exception
     {
-        logger.log(Level.FINE, () -> "Sending MONITOR value for " + pv);
+        logger.log(Level.FINE, () -> "Sending MONITOR value for " + pv + ": changes " + changes + ", overrun " + overrun);
 
         PVAHeader.encodeMessageHeader(buffer, PVAHeader.FLAG_SERVER, PVAHeader.CMD_MONITOR, 0);
         final int payload_start = buffer.position();
@@ -106,6 +112,7 @@ class MonitorSubscription
         changes.clear();
 
         PVABitSet.encodeBitSet(overrun, buffer);
+        overrun.clear();
 
         final int payload_end = buffer.position();
         buffer.putInt(PVAHeader.HEADER_OFFSET_PAYLOAD_SIZE, payload_end - payload_start);
