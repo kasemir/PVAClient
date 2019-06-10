@@ -11,6 +11,7 @@ import static org.epics.pva.PVASettings.logger;
 
 import java.net.InetSocketAddress;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentHashMap.KeySetView;
 import java.util.concurrent.ForkJoinPool;
 import java.util.logging.Level;
 
@@ -18,29 +19,51 @@ import org.epics.pva.Guid;
 import org.epics.pva.data.PVAStructure;
 
 /** PVA Server
+ *
+ *  <p>Server is identified by a unique ID and
+ *  holds {@link ServerPV}s.
+ *
+ *  <p>It listens to PV name searches via UDP,
+ *  and establishes a {@link ServerTCPHandler}
+ *  for each connected client.
+ *
  *  @author Kay Kasemir
  */
 @SuppressWarnings("nls")
 public class PVAServer
 {
     private static ForkJoinPool POOL = ForkJoinPool.commonPool();
-    
+
     private final Guid guid = new Guid();
 
+    /** Served PVs by name */
     private final ConcurrentHashMap<String, ServerPV> pv_by_name = new ConcurrentHashMap<>();
+
+    /** Served PVs by server ID */
     private final ConcurrentHashMap<Integer, ServerPV> pv_by_sid = new ConcurrentHashMap<>();
-    
-    private final ServerTCPListener tcp;
+
+    /** UDP handler, listens to name searches */
     private final ServerUDPHandler udp;
+
+    /** TCP connection listener, creates {@link ServerTCPHandler} for each connecting client */
+    private final ServerTCPListener tcp;
+
+    /** Handlers for the TCP connections clients estabished to this server */
+    private final KeySetView<ServerTCPHandler, Boolean> tcp_handlers = ConcurrentHashMap.newKeySet();
+
 
     public PVAServer() throws Exception
     {
-        tcp = new ServerTCPListener(this);
+
         udp = new ServerUDPHandler(this::handleSearchRequest);
+        tcp = new ServerTCPListener(this);
     }
 
     /** Create a PV which will be served to clients
-     * 
+     *
+     *  <p>Creates a thread-safe copy of the initial value.
+     *  To update the data, see {@link ServerPV#update(PVAStructure)}
+     *
      *  @param name PV Name
      *  @param data Type definition and initial value
      *  @return {@link ServerPV}
@@ -52,8 +75,8 @@ public class PVAServer
         pv_by_sid.put(pv.getSID(), pv);
         return pv;
     }
-   
-    /** Get existing PV 
+
+    /** Get existing PV
      *  @param name PV name
      *  @return PV or <code>null</code> when unknown
      */
@@ -61,7 +84,7 @@ public class PVAServer
     {
         return pv_by_name.get(name);
     }
-   
+
     ServerPV getPV(final int sid)
     {
         return pv_by_sid.get(sid);
@@ -78,10 +101,33 @@ public class PVAServer
             POOL.execute(() -> udp.sendSearchReply(guid, seq, cid, tcp, addr));
         }
     }
-    
+
+    /** @param tcp_connection Newly created {@link ServerTCPHandler} */
+    void register(final ServerTCPHandler tcp_connection)
+    {
+        tcp_handlers.add(tcp_connection);
+    }
+
+    /** @param tcp_connection {@link ServerTCPHandler} that experienced error or client closed it */
+    void shutdownConnection(final ServerTCPHandler tcp_connection)
+    {
+        // If this is still a known handler, close it, but don't wait
+        if (tcp_handlers.remove(tcp_connection))
+            tcp_connection.close(false);
+    }
+
+    /** Close all connections */
     public void close()
     {
+        // Stop listening to searches
         udp.close();
+
+        // Stop listening to connections
         tcp.close();
+
+        // Close established connections
+        for (ServerTCPHandler handler : tcp_handlers)
+            handler.close(true);
+        tcp_handlers.clear();
     }
 }

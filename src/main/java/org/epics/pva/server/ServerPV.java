@@ -7,14 +7,8 @@
  ******************************************************************************/
 package org.epics.pva.server;
 
-import static org.epics.pva.PVASettings.logger;
-
-import java.nio.channels.SocketChannel;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.logging.Level;
 
-import org.epics.pva.data.PVAData;
 import org.epics.pva.data.PVAStructure;
 
 /** Maintains all the server's PVs
@@ -24,31 +18,46 @@ import org.epics.pva.data.PVAStructure;
 public class ServerPV
 {
     private static final AtomicInteger IDs = new AtomicInteger();
-    
+
     private final String name;
     private final int sid;
     private volatile PVAStructure data;
-    
+
     ServerPV(final String name, final PVAStructure data)
     {
         this.name = name;
         this.sid = IDs.incrementAndGet();
-        this.data = data;
+        this.data = data.cloneData();
     }
-    
+
     public int getSID()
     {
         return sid;
     }
-    
+
+    /** Update the PV's data
+     *
+     *  <p>The new data is used to update the current
+     *  value of the PV.
+     *  Its type must match the initial value used when
+     *  creating the PV on the server.
+     *
+     *  @param new_data New data to serve
+     */
+    public void update(final PVAStructure new_data)
+    {
+        // TODO Auto-generated method stub
+        // Lock data, update subscriptions, unlock
+    }
+
     // TODO Locking
     // Data is accessed when clients request it,
     // and when code updates it in the server
-    public PVAStructure getData()
+    PVAStructure getData()
     {
         return data;
     }
-    
+
     @Override
     public String toString()
     {

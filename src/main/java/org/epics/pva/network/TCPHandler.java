@@ -26,20 +26,20 @@ import org.epics.pva.PVAHeader;
 import org.epics.pva.data.Hexdump;
 
 /** Read and write TCP messages
- * 
+ *
  *  <p>Waits for messages,
  *  performs basic message header check
  *  and dispatches to derived class.
- *  
+ *
  *  <p>Maintains send queue.
- *  
+ *
  *  @author Kay Kasemir
  */
 @SuppressWarnings("nls")
 abstract public class TCPHandler
 {
     /** Protocol version used by the PVA server
-     * 
+     *
      *  <p>That's either 'us' when used in the server,
      *  or the server to which we're connected when
      *  used in the client
@@ -47,7 +47,7 @@ abstract public class TCPHandler
     protected volatile byte server_version = PVAHeader.PVA_PROTOCOL_REVISION;
 
     /** Buffer size on server.
-     * 
+     *
      *  <p>Client reduces this from the default if server
      *  reports a smaller value during connection validation.
      */
@@ -55,7 +55,7 @@ abstract public class TCPHandler
 
     /** Is this the client, expecting received messages to be marked as server messages? */
     private final boolean client_mode;
-    
+
     /** TCP socket to PVA peer */
     private final SocketChannel socket;
 
@@ -96,11 +96,11 @@ abstract public class TCPHandler
     private volatile Future<Void> send_thread;
 
     /** Start receiving messages
-     * 
+     *
      *  <p>Will accept messages to be sent,
      *  but will only start sending them when the
      *  send thread is running
-     * 
+     *
      *  @param socket Socket to read/write
      *  @param client_mode Is this the client, expecting to receive messages from server?
      *  @see {@link #startSender()}
@@ -113,13 +113,13 @@ abstract public class TCPHandler
         // Start receiving data
         receive_thread = thread_pool.submit(this::receiver);
     }
-    
+
     /** Start send thread
-     *  
+     *
      *  <p>Must be called from just one thread,
      *  might otherwise start multiple send threads.
-     *  
-     * @throws Exception on error 
+     *
+     * @throws Exception on error
      */
     protected void startSender() throws Exception
     {
@@ -140,7 +140,7 @@ abstract public class TCPHandler
     {
         return send_items.isEmpty();
     }
-    
+
     /** Submit item to be sent to peer
      *  @param item {@link RequestEncoder}
      *  @return <code>true</code> on success,
@@ -189,10 +189,10 @@ abstract public class TCPHandler
     }
 
     /** Send message
-     * 
+     *
      *  <p>Must only be called by outside code before
      *  the sender has been started
-     * 
+     *
      *  @param buffer Buffer to send
      *  @throws Exception on error
      */
@@ -237,12 +237,8 @@ abstract public class TCPHandler
         }
     }
 
-    /** Receiver
-     * 
-     *  <p>Derived class may override to perform cleanup
-     *  when socket has been closed
-     */
-    protected Void receiver()
+    /** Receiver */
+    private Void receiver()
     {
         try
         {
@@ -290,13 +286,26 @@ abstract public class TCPHandler
         catch (Exception ex)
         {
             if (running)
-                logger.log(Level.WARNING, Thread.currentThread().getName() + " exists because of error", ex);
+                logger.log(Level.WARNING, Thread.currentThread().getName() + " exits because of error", ex);
         }
+        onReceiverExited(running);
         logger.log(Level.FINER, Thread.currentThread().getName() + " done.");
         return null;
     }
 
-    /** Check receive buffer size, grow if needed 
+    /** Invoked when the receiver thread exits because socket has been closed.
+     *
+     *  <p>Derived class may override to perform cleanup
+     *  when socket has been closed
+     *
+     *  @param running Was TCP connection still running, i.e. unexpected shutdown?
+     */
+    protected void onReceiverExited(final boolean running)
+    {
+        // NOP
+    }
+
+    /** Check receive buffer size, grow if needed
      *  @param message_size Required receive buffer size
      */
     private void checkReceiveBufferSize(final int message_size)
@@ -318,11 +327,11 @@ abstract public class TCPHandler
     }
 
     /** Handle a received message
-     * 
+     *
      *  <p>Called after the protocol header was found
      *  to contain a valid protocol version and a complete
      *  message has been received.
-     *  
+     *
      *  @param buffer Buffer positioned at start of header
      *  @throws Exception on error
      */
@@ -337,9 +346,9 @@ abstract public class TCPHandler
         else
             handleApplicationMessage(command, buffer);
     }
-    
+
     /** Handle a received control message
-     * 
+     *
      *  @param command Control command
      *  @param buffer Buffer positioned at start of header
      *  @throws Exception on error
@@ -350,7 +359,7 @@ abstract public class TCPHandler
     }
 
     /** Handle a received application message
-     * 
+     *
      *  @param command Application command
      *  @param buffer Buffer positioned at start of header
      *  @throws Exception on error
@@ -409,5 +418,4 @@ abstract public class TCPHandler
         }
         return buf.toString();
     }
-
 }

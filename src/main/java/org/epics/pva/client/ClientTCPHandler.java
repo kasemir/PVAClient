@@ -33,10 +33,10 @@ import org.epics.pva.network.RequestEncoder;
 import org.epics.pva.network.TCPHandler;
 
 /** Handle TCP connection to PVA server
- * 
+ *
  *  <p>Maintains state of all the channels that
  *  we read/write on one PVA server.
- *  
+ *
  *  @author Kay Kasemir
  */
 @SuppressWarnings("nls")
@@ -127,7 +127,7 @@ class ClientTCPHandler extends TCPHandler
     {
         return client;
     }
-    
+
     /** @param channel Channel that uses this TCP connection */
     void addChannel(final PVAChannel channel)
     {
@@ -194,7 +194,7 @@ class ClientTCPHandler extends TCPHandler
     {
         return response_handlers.remove(request_id);
     }
-    
+
     /** Check responsiveness of this TCP connection */
     private void checkResponsiveness()
     {
@@ -233,12 +233,10 @@ class ClientTCPHandler extends TCPHandler
     }
 
     @Override
-    protected Void receiver()
+    protected void onReceiverExited(final boolean running)
     {
-        super.receiver();
         if (running)
             client.shutdownConnection(this);
-        return null;
     }
 
     @Override
@@ -266,13 +264,13 @@ class ClientTCPHandler extends TCPHandler
         else
             super.handleControlMessage(command, buffer);
     }
-    
+
     @Override
     protected void handleApplicationMessage(final byte command, final ByteBuffer buffer) throws Exception
     {
         if (! handlers.handleCommand(command, this, buffer))
             logger.log(Level.WARNING, "Cannot handle reply for application command " + command);
-        
+
     }
 
     void handleValidationRequest(final int server_receive_buffer_size,
@@ -304,7 +302,7 @@ class ClientTCPHandler extends TCPHandler
         send_buffer.flip();
         send(send_buffer);
     }
-    
+
     void markValid() throws Exception
     {
         if (connection_validated.compareAndSet(false, true))
@@ -314,6 +312,7 @@ class ClientTCPHandler extends TCPHandler
     /** Close network socket and threads
      *  @param wait Wait for threads to end?
      */
+    @Override
     public void close(final boolean wait)
     {
         alive_check.cancel(false);

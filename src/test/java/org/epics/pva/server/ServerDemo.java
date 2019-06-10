@@ -7,7 +7,6 @@
  ******************************************************************************/
 package org.epics.pva.server;
 
-import java.util.BitSet;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.LogManager;
 
@@ -31,47 +30,45 @@ public class ServerDemo
         final PVAStructure data = new PVAStructure("demo", "demo_t",
                                                    new PVADouble("value", 3.13),
                                                    new PVAString("tag",   "Hello!"));
-
         final ServerPV pv = server.createPV("demo", data);
-
-        for (int i=0; i<60; ++i)
+        for (int i=0; i<30; ++i)
         {
             TimeUnit.SECONDS.sleep(1);
 
-            // Option 1: Update the data, tell server that it changed.
+            // Update the data, tell server that it changed.
             // Server figures out what changed.
-            // ==> Server must keep a copy of the data.
-            //     No locking necessary, but determining what
-            //     changed is expensive
-
-            // final PVADouble value = data.get("value");
-            // value.set(value.get() + 1);
-            // pv.update(data);
+            //
+            // This implies that the server keeps a thread-safe copy of the data,
+            // and determines which elements of the data have changed.
+            final PVADouble value = data.get("value");
+            value.set(value.get() + 1);
+            pv.update(data);
 
             // Throw exception if update doesn't match served data
             // pv.update(new PVAInt("xx", 47));
 
 
-
-            // Option 2: Update the data, tell server what changed
-            // ==> Both server and this code need to lock the data.
-            //     If you forget to lock/unlock, you're stuffed.
-            //     If 'changes' bitset is wrong, it's your fault.
+            // Alternative 1:
+            // Client locks and unlocks the data,
+            // and client informs server what has changed.
+            //
+            // Potentially more efficient, but complicates calling code.
 
             // pv.prepare_update();
-            final PVADouble value = data.get("value");
-            value.set(value.get() + 1);
-            final BitSet changes = new BitSet();
-            changes.set(data.getIndex(value));
+            // final PVADouble value = data.get("value");
+            // value.set(value.get() + 1);
+            // final BitSet changes = new BitSet();
+            // changes.set(data.getIndex(value));
             // pv.complete_update(changes);
 
 
-            // Option 3: Don't update the data directly,
-            // do that via the ServerPV
-            // ==> ServerPV can track the changes and
-            //     internally lock as needed.
-            //     But awkward API compared to the usual PVA* data calls.
-            //     How to for example get the current value if you want to increment?
+            // Alternative 1:
+            // Don't update the data directly, do that via the ServerPV
+            //
+            // Client code more concise, server library can handle
+            // locking and quite easily determine changes,
+            // but makes for an awkward API that uses the element indices
+            // and has no type information
 
             // pv.update(1, 10.0*i, 2, "Hello #" + i);
         }
