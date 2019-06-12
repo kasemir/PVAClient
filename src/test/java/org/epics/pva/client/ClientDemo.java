@@ -5,7 +5,7 @@
  * which accompanies this distribution, and is available at
  * http://www.eclipse.org/legal/epl-v10.html
  ******************************************************************************/
-package org.epics.pva;
+package org.epics.pva.client;
 
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
@@ -16,11 +16,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.logging.LogManager;
 
-import org.epics.pva.client.ClientChannelListener;
-import org.epics.pva.client.ClientChannelState;
-import org.epics.pva.client.MonitorListener;
-import org.epics.pva.client.PVAChannel;
-import org.epics.pva.client.PVAClient;
+import org.epics.pva.PVASettings;
 import org.epics.pva.data.PVAData;
 import org.epics.pva.data.PVAStructure;
 import org.junit.Test;

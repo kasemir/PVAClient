@@ -5,7 +5,7 @@
  * which accompanies this distribution, and is available at
  * http://www.eclipse.org/legal/epl-v10.html
  ******************************************************************************/
-package org.epics.pva;
+package org.epics.pva.client;
 
 import java.util.concurrent.CountDownLatch;
 import java.util.logging.Handler;
@@ -13,10 +13,7 @@ import java.util.logging.Level;
 import java.util.logging.LogManager;
 import java.util.logging.Logger;
 
-import org.epics.pva.client.PVAChannel;
-import org.epics.pva.client.ClientChannelListener;
-import org.epics.pva.client.ClientChannelState;
-import org.epics.pva.client.PVAClient;
+import org.epics.pva.PVASettings;
 import org.junit.Test;
 
 /** Beacon demo using demo.db from test resources

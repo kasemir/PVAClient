@@ -256,7 +256,10 @@ abstract public class TCPHandler
                     checkReceiveBufferSize(message_size);
                     final int read = socket.read(receive_buffer);
                     if (read < 0)
-                        throw new Exception("TCP Socket closed");
+                    {
+                        logger.log(Level.FINER, () -> Thread.currentThread().getName() + ": socket closed");
+                        return null;
+                    }
                     if (read > 0)
                         logger.log(Level.FINER, () -> Thread.currentThread().getName() + ": " + read + " bytes");
                     // and once we get the header, it will tell
@@ -288,8 +291,11 @@ abstract public class TCPHandler
             if (running)
                 logger.log(Level.WARNING, Thread.currentThread().getName() + " exits because of error", ex);
         }
-        onReceiverExited(running);
-        logger.log(Level.FINER, Thread.currentThread().getName() + " done.");
+        finally
+        {
+            onReceiverExited(running);
+            logger.log(Level.FINER, Thread.currentThread().getName() + " done.");
+        }
         return null;
     }
 
