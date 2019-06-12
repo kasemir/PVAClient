@@ -104,6 +104,25 @@ public class ClientDemo
     }
 
     @Test
+    public void testStatic() throws Exception
+    {
+        final PVAClient pva = new PVAClient();
+
+        final PVAChannel ch = pva.getChannel("static");
+        ch.connect().get(5, TimeUnit.SECONDS);
+
+        final Future<PVAStructure> data = ch.read("");
+        System.out.println(ch.getName() + " = " + data.get());
+
+        // With logging level set high enough,
+        // should see an 'echo' request sent out every 15 seconds
+        TimeUnit.SECONDS.sleep(60);
+
+        ch.close();
+        pva.close();
+    }
+
+    @Test
     public void testGet() throws Exception
     {
         // Create a client

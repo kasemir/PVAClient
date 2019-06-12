@@ -24,3 +24,9 @@ record(calc, "rnd")
   field(CALC, "100*RNDM")
 }
 
+record(ai, "static")
+{
+  field(INP,  "42")
+  field(PINI, "YES")
+}
+
