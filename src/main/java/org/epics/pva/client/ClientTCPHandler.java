@@ -274,7 +274,8 @@ class ClientTCPHandler extends TCPHandler
     }
 
     void handleValidationRequest(final int server_receive_buffer_size,
-                                 final short server_introspection_registry_max_size) throws Exception
+                                 final short server_introspection_registry_max_size,
+                                 final String authorization) throws Exception
     {
         // Don't send more than the server can handle
         server_buffer_size = Math.min(server_buffer_size, server_receive_buffer_size);
@@ -287,7 +288,7 @@ class ClientTCPHandler extends TCPHandler
         // Reply to Connection Validation request.
         logger.log(Level.FINE, "Sending connection validation response");
         // Since send thread is not running, yet, send directly
-        PVAHeader.encodeMessageHeader(send_buffer, PVAHeader.FLAG_NONE, PVAHeader.CMD_VALIDATION, 4+2+2+1);
+        PVAHeader.encodeMessageHeader(send_buffer, PVAHeader.FLAG_NONE, PVAHeader.CMD_VALIDATION, 4+2+2+PVAString.getEncodedSize(authorization));
         // Inform server about our receive buffer size
         send_buffer.putInt(receive_buffer.capacity());
         // Unclear, just echo the server's size
@@ -297,7 +298,7 @@ class ClientTCPHandler extends TCPHandler
         send_buffer.putShort(quos);
 
         // Selected authNZ plug-in
-        PVAString.encodeString("", send_buffer);
+        PVAString.encodeString(authorization, send_buffer);
 
         send_buffer.flip();
         send(send_buffer);

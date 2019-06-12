@@ -48,7 +48,10 @@ public class ValidationHandler implements CommandHandler<ClientTCPHandler>
         logger.finer("Server registry max size: " + server_introspection_registry_max_size);
         logger.finer("Server authorizations: " + auth);
 
+        // TODO Support "ca" authorization, sending user and host
+        String authorization = "anonymous";
         tcp.handleValidationRequest(server_receive_buffer_size,
-                                    server_introspection_registry_max_size);
+                                    server_introspection_registry_max_size,
+                                    authorization);
     }
 }
