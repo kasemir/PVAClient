@@ -103,20 +103,30 @@ public class ClientDemo
         pva.close();
     }
 
+    /** Not a good test, more of a starting point
+     *  for long running test which is then paused in the debugger etc.
+     */
     @Test
     public void testStatic() throws Exception
     {
+        // Connect
         final PVAClient pva = new PVAClient();
 
         final PVAChannel ch = pva.getChannel("static");
         ch.connect().get(5, TimeUnit.SECONDS);
 
+        // Get one value
         final Future<PVAStructure> data = ch.read("");
         System.out.println(ch.getName() + " = " + data.get());
 
         // With logging level set high enough,
         // should see an 'echo' request sent out every 15 seconds
         TimeUnit.SECONDS.sleep(60);
+
+        // Can also run for a long time, then pause the client
+        // for about 30 seconds in the debugger after which server
+        // should close the idle TCP connection
+        // TimeUnit.HOURS.sleep(60);
 
         ch.close();
         pva.close();
