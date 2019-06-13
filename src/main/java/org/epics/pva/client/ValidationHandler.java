@@ -44,14 +44,18 @@ public class ValidationHandler implements CommandHandler<ClientTCPHandler>
         for (int i=0; i<size; ++i)
             auth.add(PVAString.decodeString(buffer));
         logger.fine("Received connection validation request");
-        logger.finer("Server receive buffer size: " + server_receive_buffer_size);
-        logger.finer("Server registry max size: " + server_introspection_registry_max_size);
-        logger.finer("Server authorizations: " + auth);
+        logger.finer(() -> "Server receive buffer size: " + server_receive_buffer_size);
+        logger.finer(() -> "Server registry max size: " + server_introspection_registry_max_size);
+        logger.finer(() -> "Server authentication methods: " + auth);
 
-        // TODO Support "ca" authorization, sending user and host
-        String authorization = "anonymous";
+        // Support "ca" authorization, fall back to anonymouse
+        final ClientAuthentication authentication;
+        if (auth.contains("ca"))
+            authentication = ClientAuthentication.CA;
+        else
+            authentication = ClientAuthentication.Anonymous;
         tcp.handleValidationRequest(server_receive_buffer_size,
                                     server_introspection_registry_max_size,
-                                    authorization);
+                                    authentication);
     }
 }

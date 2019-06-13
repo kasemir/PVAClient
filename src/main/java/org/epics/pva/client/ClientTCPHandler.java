@@ -26,7 +26,6 @@ import java.util.logging.Level;
 import org.epics.pva.Guid;
 import org.epics.pva.PVAHeader;
 import org.epics.pva.PVASettings;
-import org.epics.pva.data.PVAString;
 import org.epics.pva.data.PVATypeRegistry;
 import org.epics.pva.network.CommandHandlers;
 import org.epics.pva.network.RequestEncoder;
@@ -275,7 +274,7 @@ class ClientTCPHandler extends TCPHandler
 
     void handleValidationRequest(final int server_receive_buffer_size,
                                  final short server_introspection_registry_max_size,
-                                 final String authorization) throws Exception
+                                 final ClientAuthentication auth) throws Exception
     {
         // Don't send more than the server can handle
         server_buffer_size = Math.min(server_buffer_size, server_receive_buffer_size);
@@ -286,19 +285,27 @@ class ClientTCPHandler extends TCPHandler
         // it will send a CMD_VALIDATED = 9 message with StatusOK and close the TCP connection.
 
         // Reply to Connection Validation request.
-        logger.log(Level.FINE, "Sending connection validation response");
+        logger.log(Level.FINE, () -> "Sending connection validation response, auth = " + auth);
         // Since send thread is not running, yet, send directly
-        PVAHeader.encodeMessageHeader(send_buffer, PVAHeader.FLAG_NONE, PVAHeader.CMD_VALIDATION, 4+2+2+PVAString.getEncodedSize(authorization));
+        PVAHeader.encodeMessageHeader(send_buffer, PVAHeader.FLAG_NONE, PVAHeader.CMD_VALIDATION, 4+2+2+1);
+        final int start = send_buffer.position();
+        
         // Inform server about our receive buffer size
         send_buffer.putInt(receive_buffer.capacity());
+        
         // Unclear, just echo the server's size
         send_buffer.putShort(server_introspection_registry_max_size);
+        
         // QoS = Connection priority
         final short quos = 0;
         send_buffer.putShort(quos);
 
         // Selected authNZ plug-in
-        PVAString.encodeString(authorization, send_buffer);
+        auth.encode(send_buffer);
+
+        // Correct payload size (depends on auth)
+        final int end = send_buffer.position();
+        send_buffer.putInt(PVAHeader.HEADER_OFFSET_PAYLOAD_SIZE, end - start);
 
         send_buffer.flip();
         send(send_buffer);
