@@ -82,7 +82,8 @@ public class PVAHeader
     /** Application command: Cancel request */
     public static final byte CMD_CANCEL = 0x15;
 
-
+    /** Application command: Origin tag */
+    public static final byte CMD_ORIGIN_TAG = 0x16;
 
 
     /** Sub command to initialize GET/PUT/MONITOR (get data description) */

@@ -15,6 +15,7 @@ import java.util.logging.Level;
 
 import org.epics.pva.PVAHeader;
 import org.epics.pva.data.PVASize;
+import org.epics.pva.data.PVAString;
 import org.epics.pva.data.PVATypeRegistry;
 import org.epics.pva.network.CommandHandlers;
 import org.epics.pva.network.TCPHandler;
@@ -63,7 +64,7 @@ class ServerTCPHandler extends TCPHandler
             logger.log(Level.FINE, () -> "Sending Validation Request");
             PVAHeader.encodeMessageHeader(buffer,
                     PVAHeader.FLAG_SERVER,
-                    PVAHeader.CMD_VALIDATION, 4+2+1);
+                    PVAHeader.CMD_VALIDATION, 4+2+1+PVAString.getEncodedSize("anonymous") + PVAString.getEncodedSize("ca"));
 
             // int serverReceiveBufferSize;
             buffer.putInt(receive_buffer.capacity());
@@ -72,8 +73,11 @@ class ServerTCPHandler extends TCPHandler
             buffer.putShort(Short.MAX_VALUE);
 
             // string[] authNZ;
-            PVASize.encodeSize(0, buffer);
-            // No authNZ
+            PVASize.encodeSize(1, buffer);
+
+            // TODO ServerAuthentication
+            PVAString.encodeString("ca", buffer);
+            PVAString.encodeString("anonymous", buffer);
         });
     }
 

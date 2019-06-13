@@ -42,7 +42,7 @@ class ServerUDPHandler extends UDPHandler
          */
         public void handleSearchRequest(int seq, int cid, String name, InetSocketAddress addr);
     }
-    
+
     private final SearchHandler search_handler;
 
     /** UDP channel on which we listen to name search
@@ -72,17 +72,38 @@ class ServerUDPHandler extends UDPHandler
         listen_thread.setDaemon(true);
         listen_thread.start();
     }
-    
+
+    @Override
     protected boolean handleMessage(final InetSocketAddress from, final byte version,
                                     final byte command, final int payload, final ByteBuffer buffer)
     {
         switch (command)
         {
+        case PVAHeader.CMD_ORIGIN_TAG:
+            return handleOriginTag(from, version, payload, buffer);
         case PVAHeader.CMD_SEARCH:
             return handleSearch(from, version, payload, buffer);
         default:
             logger.log(Level.WARNING, "PVA Client " + from + " sent UDP packet with unknown command 0x" + Integer.toHexString(command));
         }
+        return true;
+    }
+
+    private boolean handleOriginTag(final InetSocketAddress from, final byte version,
+                                    final int payload, final ByteBuffer buffer)
+    {
+        final InetAddress addr;
+        try
+        {
+            addr = PVAAddress.decode(buffer);
+        }
+        catch (Exception ex)
+        {
+            logger.log(Level.WARNING, "PVA Client " + from + " sent origin tag with invalid address");
+            return false;
+        }
+        logger.log(Level.FINER, () -> "PVA Client " + from + " sent origin tag " + addr);
+
         return true;
     }
 
@@ -99,7 +120,7 @@ class ServerUDPHandler extends UDPHandler
         buffer.get();
         buffer.get();
         buffer.get();
-        
+
         // responseAddress, IPv6 address in case of IP based transport, UDP
         final InetAddress addr;
         try
@@ -112,14 +133,14 @@ class ServerUDPHandler extends UDPHandler
             return false;
         }
         final int port = Short.toUnsignedInt(buffer.getShort());
-        
+
         // Use address from reply unless it's a generic local address
         final InetSocketAddress client;
         if (addr.isAnyLocalAddress())
             client = new InetSocketAddress(from.getAddress(), port);
         else
             client = new InetSocketAddress(addr, port);
-        
+
         // Assert that client supports "tcp", ignore rest
         boolean tcp = false;
         int count = Byte.toUnsignedInt(buffer.get());
@@ -138,7 +159,7 @@ class ServerUDPHandler extends UDPHandler
             logger.log(Level.WARNING, "PVA Client " + from + " sent search #" + seq + " for protocol '" + protocol + "', need 'tcp'");
             return false;
         }
-        
+
         // Loop over searched channels
         count = Short.toUnsignedInt(buffer.getShort());
         for (int i=0; i<count; ++i)
@@ -150,7 +171,7 @@ class ServerUDPHandler extends UDPHandler
         }
         return true;
     }
-    
+
     /** Send a "channel found" reply to a client's search
      *  @param guid This server's GUID
      *  @param seq Client search request sequence number
@@ -166,24 +187,24 @@ class ServerUDPHandler extends UDPHandler
             PVAHeader.encodeMessageHeader(sendBuffer, PVAHeader.FLAG_SERVER, PVAHeader.CMD_SEARCH_REPLY, 12+4+16+2+4+1+2+4);
             // Server GUID
             guid.encode(sendBuffer);
-            
+
             // Search Sequence ID
             sendBuffer.putInt(seq);
-            
+
             // Server's address and port
             PVAAddress.encode(tcp.response_address, sendBuffer);
             sendBuffer.putShort((short)tcp.response_port);
-            
+
             // Protocol
             PVAString.encodeString("tcp", sendBuffer);
-            
+
             // Found
             PVABool.encodeBoolean(true, sendBuffer);
-            
+
             // int[] cid;
             sendBuffer.putShort((short)1);
             sendBuffer.putInt(cid);
-            
+
             sendBuffer.flip();
             logger.log(Level.FINER, () -> "Sending search reply to " + client + "\n" + Hexdump.toHexdump(sendBuffer));
             try
@@ -196,7 +217,8 @@ class ServerUDPHandler extends UDPHandler
             }
         }
     }
-    
+
+    @Override
     public void close()
     {
         super.close();
@@ -204,7 +226,7 @@ class ServerUDPHandler extends UDPHandler
         try
         {
             udp.close();
-            
+
             if (listen_thread != null)
                 listen_thread.join(5000);
         }
