@@ -9,9 +9,11 @@ package org.epics.pva.client;
 
 import static org.epics.pva.PVASettings.logger;
 
+import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
 import java.util.concurrent.ConcurrentHashMap;
@@ -20,12 +22,14 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
+import java.util.stream.Collectors;
 
 import org.epics.pva.PVAConstants;
 import org.epics.pva.PVAHeader;
 import org.epics.pva.data.Hexdump;
 import org.epics.pva.data.PVAAddress;
 import org.epics.pva.data.PVAString;
+import org.epics.pva.network.Network;
 
 /** Handler for search requests
  *
@@ -112,14 +116,36 @@ public class ChannelSearch
     private final ByteBuffer send_buffer = ByteBuffer.allocate(PVAConstants.MAX_UDP_UNFRAGMENTED_SEND);
 
     /** Address list to which search requests are sent */
-    private final List<InetSocketAddress> search_addresses;
+    private final List<InetSocketAddress> unicast_search_addresses = new ArrayList<>(), broadcast_search_addresses = new ArrayList<>();
 
     public ChannelSearch(final ClientUDPHandler udp, final List<InetSocketAddress> search_addresses) throws Exception
     {
         this.udp = udp;
-        this.search_addresses = search_addresses;
+
+        // Searches sent to broadcast addresses reach every PVA server on that subnet.
+        // Searches sent to unicast addresses reach only the PVA server started _last_ on each host.
+        // They are thus marked with a UNICAST flag, and the receiving PVA tool then
+        // re-broadcasts them locally for other PVA tools on the same host.
+        final List<InetAddress> local_bcast = Network.getBroadcastAddresses(0).stream().map(InetSocketAddress::getAddress).collect(Collectors.toList());
         for (InetSocketAddress addr : search_addresses)
-            logger.log(Level.CONFIG, "Sending searches to " + addr.getAddress() + " port " + addr.getPort());
+        {
+            // Trouble is, how do you recognize a unicast address?
+            if (addr.getAddress().isMulticastAddress())
+            {   // Multicast -> Certainly no unicast!
+                broadcast_search_addresses.add(addr);
+                logger.log(Level.CONFIG, "Sending searches to " + addr.getAddress() + " port " + addr.getPort() + " (multicast)");
+            }
+            else if (local_bcast.contains(addr.getAddress()))
+            {   // One of the local network interface bcasts? -> No unicast
+                broadcast_search_addresses.add(addr);
+                logger.log(Level.CONFIG, "Sending searches to " + addr.getAddress() + " port " + addr.getPort() + " (local broadcast)");
+            }
+            else
+            {   // Else: Assume unicast, but could also be a bcast for another subnet...
+                unicast_search_addresses.add(addr);
+                logger.log(Level.CONFIG, "Sending searches to " + addr.getAddress() + " port " + addr.getPort() + " (assume unicast)");
+            }
+        }
     }
 
     public void start()
@@ -219,8 +245,12 @@ public class ChannelSearch
             final int seq = search_sequence.incrementAndGet();
             send_buffer.putInt(seq);
 
+            // If a host has multiple listeners on the UDP search port,
+            // only the one started last will see the unicast.
+            // Mark search message as unicast so that receiver will forward
+            // it via local broadcast to other local listeners.
             // 0-bit for replyRequired, 7-th bit for "sent as unicast" (1)/"sent as broadcast/multicast" (0)
-            send_buffer.put((byte) 0);
+            send_buffer.put((byte) 0x80);
 
             // reserved
             send_buffer.put((byte) 0);
@@ -243,16 +273,30 @@ public class ChannelSearch
             PVAString.encodeString(channel.getName(), send_buffer);
 
             // Update payload size
-            final int payload_size = send_buffer.position() - payload_start;
-            send_buffer.putInt(PVAHeader.HEADER_OFFSET_PAYLOAD_SIZE, payload_size);
+            send_buffer.putInt(PVAHeader.HEADER_OFFSET_PAYLOAD_SIZE, send_buffer.position() - payload_start);
 
             send_buffer.flip();
             logger.log(Level.FINE, "Search Request #" + seq + " for " + channel);
-            for (InetSocketAddress addr : search_addresses)
+            for (InetSocketAddress addr : unicast_search_addresses)
             {
                 try
                 {
-                    logger.log(Level.FINER, () -> "Sending search to UDP  " + addr + "\n" + Hexdump.toHexdump(send_buffer));
+                    logger.log(Level.FINER, () -> "Sending search to UDP  " + addr + " (unicast)\n" + Hexdump.toHexdump(send_buffer));
+                    udp.send(send_buffer, addr);
+                }
+                catch (Exception ex)
+                {
+                    logger.log(Level.WARNING, "Failed to send search request to " + addr, ex);
+                }
+                send_buffer.rewind();
+            }
+
+            send_buffer.put(payload_start+4, (byte) 0x00);
+            for (InetSocketAddress addr : broadcast_search_addresses)
+            {
+                try
+                {
+                    logger.log(Level.FINER, () -> "Sending search to UDP  " + addr + " (broadcast/multicast)\n" + Hexdump.toHexdump(send_buffer));
                     udp.send(send_buffer, addr);
                 }
                 catch (Exception ex)
