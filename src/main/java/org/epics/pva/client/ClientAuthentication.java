@@ -15,6 +15,7 @@ import java.nio.ByteBuffer;
 import java.util.BitSet;
 import java.util.logging.Level;
 
+import org.epics.pva.PVAAuth;
 import org.epics.pva.data.PVAString;
 import org.epics.pva.data.PVAStructure;
 
@@ -40,13 +41,13 @@ abstract class ClientAuthentication
         @Override
         public void encode(final ByteBuffer buffer) throws Exception
         {
-            PVAString.encodeString("anonymous", buffer);
+            PVAString.encodeString(PVAAuth.ANONYMOUS, buffer);
         }
 
         @Override
         public String toString()
         {
-            return "anonymous";
+            return PVAAuth.ANONYMOUS;
         }
     };
 
@@ -80,7 +81,7 @@ abstract class ClientAuthentication
         @Override
         public void encode(final ByteBuffer buffer) throws Exception
         {
-            PVAString.encodeString("ca", buffer);
+            PVAString.encodeString(PVAAuth.CA, buffer);
             identity.encodeType(buffer, new BitSet());
             identity.encode(buffer);
         }

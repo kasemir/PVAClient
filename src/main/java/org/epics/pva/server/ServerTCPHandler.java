@@ -43,6 +43,9 @@ class ServerTCPHandler extends TCPHandler
     /** Types declared by client at other end of this TCP connection */
     private final PVATypeRegistry client_types = new PVATypeRegistry();
 
+    /** Auth info, e.g. client user info and his/her permissions */
+    private volatile ServerAuth auth = ServerAuth.Anonymous;
+
     public ServerTCPHandler(final PVAServer server, final SocketChannel client) throws Exception
     {
         super(client, false);
@@ -89,6 +92,17 @@ class ServerTCPHandler extends TCPHandler
     PVATypeRegistry getClientTypes()
     {
         return client_types;
+    }
+
+    void setAuth(final ServerAuth auth)
+    {
+        this.auth = auth;
+    }
+
+    // XXX At this time, nothing uses the auth info
+    ServerAuth getAuth()
+    {
+        return auth;
     }
 
     @Override

@@ -14,7 +14,6 @@ import java.util.logging.Level;
 
 import org.epics.pva.PVAHeader;
 import org.epics.pva.data.PVAStatus;
-import org.epics.pva.data.PVAString;
 import org.epics.pva.network.CommandHandler;
 
 /** Handle response clients's VALIDATION reply
@@ -35,15 +34,17 @@ class ValidationHandler implements CommandHandler<ServerTCPHandler>
     {
         if (buffer.remaining() < 4+2+2+1)
             throw new Exception("Incomplete validation response");
-        
+
         final int client_buffer_size = buffer.getInt();
         final int client_registry_size = Short.toUnsignedInt(buffer.getShort());
         final short quos = buffer.getShort();
-        final String auth = PVAString.decodeString(buffer);
+
+        final ServerAuth auth = ServerAuth.decode(tcp, buffer);
         logger.log(Level.FINE, "Connection validated, auth '" + auth + "'");
+        tcp.setAuth(auth);
         sendConnectionValidated(tcp);
     }
-        
+
     private void sendConnectionValidated(final ServerTCPHandler tcp)
     {
         tcp.submit((version, buf) ->
