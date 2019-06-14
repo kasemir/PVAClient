@@ -142,9 +142,9 @@ public class Network
     }
 
     /** Try to listen to multicast messages
-     *  @return Found support for multicast?
+     *  @return Local multicast address, or <code>null</code> if no multicast support
      */
-    public static boolean configureMulticast(final DatagramChannel udp)
+    public static InetSocketAddress configureMulticast(final DatagramChannel udp)
     {
         try
         {
@@ -158,13 +158,14 @@ public class Network
                 logger.log(Level.CONFIG, "Multicast group " + local_broadcast + " using network interface " + loopback.getDisplayName());
                 udp.setOption(StandardSocketOptions.IP_MULTICAST_LOOP, true);
                 udp.setOption(StandardSocketOptions.IP_MULTICAST_IF, loopback);
+
+                return local_broadcast;
             }
         }
         catch (Exception ex)
         {
             logger.log(Level.WARNING, "Cannot configure multicast support", ex);
-            return false;
         }
-        return true;
+        return null;
     }
 }

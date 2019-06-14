@@ -13,6 +13,9 @@ import java.net.InetAddress;
 import java.nio.ByteBuffer;
 
 /** Encode/decode IP addresses
+ *
+ *  <p>Stored in 16 bytes
+ *
  *  @author Kay Kasemir
  */
 @SuppressWarnings("nls")

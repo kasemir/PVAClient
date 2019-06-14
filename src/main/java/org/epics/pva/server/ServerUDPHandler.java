@@ -19,6 +19,7 @@ import org.epics.pva.Guid;
 import org.epics.pva.PVAConstants;
 import org.epics.pva.PVAHeader;
 import org.epics.pva.PVASettings;
+import org.epics.pva.client.SearchRequest;
 import org.epics.pva.data.Hexdump;
 import org.epics.pva.data.PVAAddress;
 import org.epics.pva.data.PVABool;
@@ -52,9 +53,12 @@ class ServerUDPHandler extends UDPHandler
      *  and on which we send beacons
      */
     private final DatagramChannel udp;
+
     private final InetSocketAddress local_address;
-    private final ByteBuffer receiveBuffer = ByteBuffer.allocate(PVAConstants.MAX_UDP_PACKET);
-    private final ByteBuffer sendBuffer = ByteBuffer.allocate(PVAConstants.MAX_UDP_PACKET);
+    private final InetSocketAddress local_multicast;
+
+    private final ByteBuffer receive_buffer = ByteBuffer.allocate(PVAConstants.MAX_UDP_PACKET);
+    private final ByteBuffer send_buffer = ByteBuffer.allocate(PVAConstants.MAX_UDP_PACKET);
 
     private volatile Thread listen_thread = null;
 
@@ -67,11 +71,11 @@ class ServerUDPHandler extends UDPHandler
     {
         this.search_handler = search_handler;
         udp = Network.createUDP(false, PVASettings.EPICS_PVA_BROADCAST_PORT);
-        Network.configureMulticast(udp);
+        local_multicast = Network.configureMulticast(udp);
         local_address = (InetSocketAddress) udp.getLocalAddress();
         logger.log(Level.FINE, "Awaiting searches and sending beacons on UDP " + local_address);
 
-        listen_thread = new Thread(() -> listen(udp, receiveBuffer), "UDP-receiver " + local_address);
+        listen_thread = new Thread(() -> listen(udp, receive_buffer), "UDP-receiver " + local_address);
         listen_thread.setDaemon(true);
         listen_thread.start();
     }
@@ -110,6 +114,12 @@ class ServerUDPHandler extends UDPHandler
         return true;
     }
 
+    /** @param from Origin of search request
+     *  @param version Client's version
+     *  @param payload Size of payload
+     *  @param buffer Buffer with search request
+     *  @return Valid request?
+     */
     private boolean handleSearch(final InetSocketAddress from, final byte version,
                                  final int payload, final ByteBuffer buffer)
     {
@@ -139,7 +149,7 @@ class ServerUDPHandler extends UDPHandler
         }
         final int port = Short.toUnsignedInt(buffer.getShort());
 
-        // Use address from reply unless it's a generic local address
+        // Use address from message unless it's a generic local address
         final InetSocketAddress client;
         if (addr.isAnyLocalAddress())
             client = new InetSocketAddress(from.getAddress(), port);
@@ -167,6 +177,8 @@ class ServerUDPHandler extends UDPHandler
         {   // pvlist request
             logger.log(Level.FINER, () -> "PVA Client " + from + " sent search #" + seq + " to list servers");
             search_handler.handleSearchRequest(0, -1, null, client);
+            if (unicast)
+                PVAServer.POOL.submit(() -> forwardSearchRequest(0, -1, null, client.getAddress(), (short)client.getPort()));
         }
         else
         {   // Channel search request
@@ -181,9 +193,45 @@ class ServerUDPHandler extends UDPHandler
                 final String name = PVAString.decodeString(buffer);
                 logger.log(Level.FINER, () -> "PVA Client " + from + " sent search #" + seq + " for " + name + " [" + cid + "]");
                 search_handler.handleSearchRequest(seq, cid, name, client);
+                if (unicast)
+                    PVAServer.POOL.submit(() -> forwardSearchRequest(seq, cid, name, client.getAddress(), (short)client.getPort()));
             }
         }
+
         return true;
+    }
+
+    /** Forward a search request that we received as unicast to the local multicast group
+     *
+     *  <p>This allows other local UDP listeners to see the message,
+     *  which we received because we're the last program to attach to the UDP port,
+     *  shielding unicast messages to already running listeners.
+     *
+     *  @param seq Search sequence or 0
+     *  @param cid Channel ID or -1
+     *  @param name Name or <code>null</code>
+     *  @param address Client's address ..
+     *  @param port    .. and port
+     */
+    private void forwardSearchRequest(final int seq, final int cid, final String name, final InetAddress address, final short port)
+    {
+        if (local_multicast == null)
+            return;
+        synchronized (send_buffer)
+        {
+            send_buffer.clear();
+            SearchRequest.encode(false, seq, cid, name, address, port, send_buffer);
+            send_buffer.flip();
+            logger.log(Level.FINER, () -> "Forward search to " + local_multicast + "\n" + Hexdump.toHexdump(send_buffer));
+            try
+            {
+                udp.send(send_buffer, local_multicast);
+            }
+            catch (Exception ex)
+            {
+                logger.log(Level.WARNING, "Cannot forward search", ex);
+            }
+        }
     }
 
     /** Send a "channel found" reply to a client's search
@@ -195,40 +243,41 @@ class ServerUDPHandler extends UDPHandler
      */
     public void sendSearchReply(final Guid guid, final int seq, final int cid, final ServerTCPListener tcp, final InetSocketAddress client)
     {
-        synchronized (sendBuffer)
+        synchronized (send_buffer)
         {
-            sendBuffer.clear();
-            PVAHeader.encodeMessageHeader(sendBuffer, PVAHeader.FLAG_SERVER, PVAHeader.CMD_SEARCH_REPLY, 12+4+16+2+4+1+2+4);
+            send_buffer.clear();
+            PVAHeader.encodeMessageHeader(send_buffer, PVAHeader.FLAG_SERVER, PVAHeader.CMD_SEARCH_REPLY, 12+4+16+2+4+1+2+ (cid < 0 ? 0 : 4));
+
             // Server GUID
-            guid.encode(sendBuffer);
+            guid.encode(send_buffer);
 
             // Search Sequence ID
-            sendBuffer.putInt(seq);
+            send_buffer.putInt(seq);
 
             // Server's address and port
-            PVAAddress.encode(tcp.response_address, sendBuffer);
-            sendBuffer.putShort((short)tcp.response_port);
+            PVAAddress.encode(tcp.response_address, send_buffer);
+            send_buffer.putShort((short)tcp.response_port);
 
             // Protocol
-            PVAString.encodeString("tcp", sendBuffer);
+            PVAString.encodeString("tcp", send_buffer);
 
             // Found
-            PVABool.encodeBoolean(true, sendBuffer);
+            PVABool.encodeBoolean(cid >= 0, send_buffer);
 
             // int[] cid;
             if (cid < 0)
-                sendBuffer.putShort((short)0);
+                send_buffer.putShort((short)0);
             else
             {
-                sendBuffer.putShort((short)1);
-                sendBuffer.putInt(cid);
+                send_buffer.putShort((short)1);
+                send_buffer.putInt(cid);
             }
 
-            sendBuffer.flip();
-            logger.log(Level.FINER, () -> "Sending search reply to " + client + "\n" + Hexdump.toHexdump(sendBuffer));
+            send_buffer.flip();
+            logger.log(Level.FINER, () -> "Sending search reply to " + client + "\n" + Hexdump.toHexdump(send_buffer));
             try
             {
-                udp.send(sendBuffer, client);
+                udp.send(send_buffer, client);
             }
             catch (Exception ex)
             {

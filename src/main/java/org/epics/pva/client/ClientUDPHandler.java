@@ -104,7 +104,7 @@ class ClientUDPHandler extends UDPHandler
      */
     public boolean configureMulticast()
     {
-        return Network.configureMulticast(udp_search);
+        return Network.configureMulticast(udp_search) != null;
     }
 
     public InetAddress getResponseAddress()

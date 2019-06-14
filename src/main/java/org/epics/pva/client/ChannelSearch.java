@@ -12,7 +12,6 @@ import static org.epics.pva.PVASettings.logger;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
-import java.nio.ByteOrder;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
@@ -27,8 +26,6 @@ import java.util.stream.Collectors;
 import org.epics.pva.PVAConstants;
 import org.epics.pva.PVAHeader;
 import org.epics.pva.data.Hexdump;
-import org.epics.pva.data.PVAAddress;
-import org.epics.pva.data.PVAString;
 import org.epics.pva.network.Network;
 
 /** Handler for search requests
@@ -236,34 +233,8 @@ class ChannelSearch
         // Lock the send buffer to avoid concurrent use.
         synchronized (send_buffer)
         {
-            final byte flags = send_buffer.order() == ByteOrder.BIG_ENDIAN ? PVAHeader.FLAG_BIG_ENDIAN : PVAHeader.FLAG_NONE;
-            PVAHeader.encodeMessageHeader(send_buffer, flags, PVAHeader.CMD_SEARCH, 4+1+3+16+2+1+2);
-
-            final int payload_start = send_buffer.position();
-
-            // SEARCH message sequence
-            send_buffer.putInt(0);
-
-            // 0-bit for replyRequired, 7-th bit for "sent as unicast" (1)/"sent as broadcast/multicast" (0)
-            send_buffer.put((byte) 0x81);
-
-            // reserved
-            send_buffer.put((byte) 0);
-            send_buffer.put((byte) 0);
-            send_buffer.put((byte) 0);
-
-            // responseAddress, IPv6 address in case of IP based transport, UDP
-            PVAAddress.encode(udp.getResponseAddress(), send_buffer);
-
-            // responsePort
-            send_buffer.putShort((short)udp.getResponsePort());
-
-            // string[] protocols with count as byte since < 254
-            send_buffer.put((byte)0);
-
-            // struct { int searchInstanceID, string channelName } channels[] with count as short?!
-            send_buffer.putShort((short)0);
-
+            final int payload_start = send_buffer.position() + PVAHeader.HEADER_SIZE;
+            SearchRequest.encode(true, 0, -1, null, udp.getResponseAddress(), (short)udp.getResponsePort(), send_buffer);
             send_buffer.flip();
             logger.log(Level.FINE, "List Request");
             sendSearch(payload_start);
@@ -280,46 +251,9 @@ class ChannelSearch
         // Lock the send buffer to avoid concurrent use.
         synchronized (send_buffer)
         {
-            // Create with zero payload size, to be patched later
-            final byte flags = send_buffer.order() == ByteOrder.BIG_ENDIAN ? PVAHeader.FLAG_BIG_ENDIAN : PVAHeader.FLAG_NONE;
-            PVAHeader.encodeMessageHeader(send_buffer, flags, PVAHeader.CMD_SEARCH, 0);
-
-            final int payload_start = send_buffer.position();
-
-            // SEARCH message sequence
+            final int payload_start = send_buffer.position() + PVAHeader.HEADER_SIZE;
             final int seq = search_sequence.incrementAndGet();
-            send_buffer.putInt(seq);
-
-            // If a host has multiple listeners on the UDP search port,
-            // only the one started last will see the unicast.
-            // Mark search message as unicast so that receiver will forward
-            // it via local broadcast to other local listeners.
-            // 0-bit for replyRequired, 7-th bit for "sent as unicast" (1)/"sent as broadcast/multicast" (0)
-            send_buffer.put((byte) 0x80);
-
-            // reserved
-            send_buffer.put((byte) 0);
-            send_buffer.put((byte) 0);
-            send_buffer.put((byte) 0);
-
-            // responseAddress, IPv6 address in case of IP based transport, UDP
-            PVAAddress.encode(udp.getResponseAddress(), send_buffer);
-
-            // responsePort
-            send_buffer.putShort((short)udp.getResponsePort());
-
-            // string[] protocols with count as byte since < 254
-            send_buffer.put((byte)1);
-            PVAString.encodeString("tcp", send_buffer);
-
-            // struct { int searchInstanceID, string channelName } channels[] with count as short?!
-            send_buffer.putShort((short)1);
-            send_buffer.putInt(channel.getId());
-            PVAString.encodeString(channel.getName(), send_buffer);
-
-            // Update payload size
-            send_buffer.putInt(PVAHeader.HEADER_OFFSET_PAYLOAD_SIZE, send_buffer.position() - payload_start);
-
+            SearchRequest.encode(true, seq, channel.getId(), channel.getName(), udp.getResponseAddress(), (short)udp.getResponsePort(), send_buffer);
             send_buffer.flip();
             logger.log(Level.FINE, "Search Request #" + seq + " for " + channel);
             sendSearch(payload_start);
@@ -343,6 +277,7 @@ class ChannelSearch
             send_buffer.rewind();
         }
 
+        // Clear broadcast flag
         send_buffer.put(payload_start+4, (byte) 0x00);
         for (InetSocketAddress addr : broadcast_search_addresses)
         {

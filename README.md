@@ -98,11 +98,12 @@ PVA Server:
 
  * Maintains pool of PVs
  * Responds to searches
+ * Forward unicast searches to local multicast group
+ * Reply to 'list' search with GUID
  * Reply to 'get'
  * Support 'monitor'
    
 TODO:
 
  * Testing
- * Server reply to `pvlist`
  * Handle all the data types: Fixed size or bounded arrays

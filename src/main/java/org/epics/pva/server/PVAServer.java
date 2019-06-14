@@ -32,7 +32,7 @@ import org.epics.pva.data.PVAStructure;
 @SuppressWarnings("nls")
 public class PVAServer
 {
-    private static ForkJoinPool POOL = ForkJoinPool.commonPool();
+    public static ForkJoinPool POOL = ForkJoinPool.commonPool();
 
     private final Guid guid = new Guid();
 
@@ -54,6 +54,7 @@ public class PVAServer
     /** Create PVA Server */
     public PVAServer() throws Exception
     {
+        logger.log(Level.CONFIG, "PVA Server " + guid);
         udp = new ServerUDPHandler(this::handleSearchRequest);
         tcp = new ServerTCPListener(this);
     }
