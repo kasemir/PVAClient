@@ -44,8 +44,8 @@ public class ServerDemo
         Instant now = Instant.now();
         secs.set(now.getEpochSecond());
         nano.set(now.getNano());
-        final ServerPV pv = server.createPV("demo3", data);
-        final ServerPV pv2 = server.createPV("demo4", data);
+        final ServerPV pv = server.createPV("demo", data);
+        final ServerPV pv2 = server.createPV("demo2", data);
         for (int i=0; i<30000; ++i)
         {
             TimeUnit.SECONDS.sleep(1);
