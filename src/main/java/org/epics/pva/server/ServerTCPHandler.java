@@ -29,6 +29,7 @@ class ServerTCPHandler extends TCPHandler
     /** Handlers for various commands, re-used whenever a command is received */
     private static final CommandHandlers<ServerTCPHandler> handlers =
         new CommandHandlers<>(new ValidationHandler(),
+                              new EchoHandler(),
                               new CreateChannelHandler(),
                               new GetHandler(),
                               new MonitorHandler(),
