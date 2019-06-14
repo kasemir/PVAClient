@@ -22,14 +22,14 @@ import java.util.logging.Level;
 import org.epics.pva.PVASettings;
 
 /** Listen to TCP connections
- * 
+ *
  *  <p>Creates {@link ServerTCPHandler} for
  *  each connecting client.
- *  
+ *
  *  @author Kay Kasemir
  */
 @SuppressWarnings("nls")
-class ServerTCPListener 
+class ServerTCPListener
 {
     private final ExecutorService thread_pool = Executors.newCachedThreadPool(runnable ->
     {
@@ -37,12 +37,12 @@ class ServerTCPListener
         thread.setDaemon(true);
         return thread;
     });
-    
+
     private final PVAServer server;
-    
+
     /** TCP channel on which we listen for connections */
     private final ServerSocketChannel server_socket;
-    
+
     /** Server's TCP address on which clients can connect */
     final InetAddress response_address;
 
@@ -51,20 +51,20 @@ class ServerTCPListener
 
     private volatile boolean running = true;
     private volatile Thread listen_thread;
-    
+
     public ServerTCPListener(final PVAServer server) throws Exception
     {
         this.server = server;
         server_socket = ServerSocketChannel.open();
         server_socket.configureBlocking(true);
-        server_socket.socket().setReuseAddress(true);        
+        server_socket.socket().setReuseAddress(true);
         try
         {
-            server_socket.bind(new InetSocketAddress(PVASettings.EPICS_PVA_BROADCAST_PORT));
+            server_socket.bind(new InetSocketAddress(PVASettings.EPICS_PVA_SERVER_PORT));
         }
         catch (BindException ex)
         {
-            logger.log(Level.INFO, "TCP port " + PVASettings.EPICS_PVA_BROADCAST_PORT + " already in use, switching to automatically assigned port");
+            logger.log(Level.INFO, "TCP port " + PVASettings.EPICS_PVA_SERVER_PORT + " already in use, switching to automatically assigned port");
             server_socket.bind(new InetSocketAddress(0));
         }
 
@@ -77,7 +77,7 @@ class ServerTCPListener
         listen_thread.setDaemon(true);
         listen_thread.start();
     }
-    
+
     private void listen()
     {
         try
@@ -94,9 +94,9 @@ class ServerTCPListener
             if (running)
                 logger.log(Level.WARNING, Thread.currentThread().getName() + " exits because of error", ex);
         }
-        logger.log(Level.FINER, Thread.currentThread().getName() + " done.");        
+        logger.log(Level.FINER, Thread.currentThread().getName() + " done.");
     }
-    
+
     public void close()
     {
         running = false;
@@ -104,10 +104,10 @@ class ServerTCPListener
         try
         {
             server_socket.close();
-            
+
             if (listen_thread != null)
                 listen_thread.join(5000);
-            
+
             thread_pool.shutdownNow();
             thread_pool.awaitTermination(5, TimeUnit.SECONDS);
         }

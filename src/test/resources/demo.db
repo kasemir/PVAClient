@@ -1,9 +1,10 @@
-# softIocPVA -d demo.db
+# softIocPVA -m N='' -d demo.db
+# softIocPVA -m N=2 -d demo.db
 
-record(calc, "ramp")
+record(calc, "ramp$(N)")
 {
   field(SCAN, "1 second")
-  field(INPA, "ramp")
+  field(INPA, "ramp$(N)")
   field(CALC, "A+1")
   field(LOW,  "1")
   field(HIGH, "100")
@@ -11,20 +12,20 @@ record(calc, "ramp")
   field(HSV,  "MINOR")
 }
 
-record(calc, "saw")
+record(calc, "saw$(N)")
 {
   field(SCAN, "1 second")
-  field(INPA, "saw")
+  field(INPA, "saw$(N)")
   field(CALC, "A<10 ? A+1 : 0")
 }
 
-record(calc, "rnd")
+record(calc, "rnd$(N)")
 {
   field(SCAN, "1 second")
   field(CALC, "100*RNDM")
 }
 
-record(ai, "static")
+record(ai, "static$(N)")
 {
   field(INP,  "42")
   field(PINI, "YES")

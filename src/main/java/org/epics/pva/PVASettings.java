@@ -30,6 +30,9 @@ public class PVASettings
     /** PVA port for name searches and beacons */
     public static int EPICS_PVA_BROADCAST_PORT = 5076;
 
+    /** First PVA port */
+    public static int EPICS_PVA_SERVER_PORT = 5075;
+
     /** Multicast address */
     public static String EPICS_PVA_MULTICAST_GROUP = "224.0.0.128";
 
