@@ -42,14 +42,20 @@ class ClientUDPHandler extends UDPHandler
         void handleBeacon(InetSocketAddress server, Guid guid, int changes);
     }
 
+    /** Invoked when receiving a search reply
+     *
+     *  <p>Indicates both a plain server 'list' reply
+     *  or a reply for a specific channel
+     */
     @FunctionalInterface
     public interface SearchResponseHandler
     {
-        /** @param channel_id Channel for which server replied
+        /** @param channel_id Channel for which server replied, -1 if this is a server 'list' reply
          *  @param server Server that replied to a search request
+         *  @param version Server version
          *  @param guid  Globally unique ID of the server
          */
-        void handleSearchResponse(int channel_id, InetSocketAddress server, Guid guid);
+        void handleSearchResponse(int channel_id, InetSocketAddress server, int version, Guid guid);
     }
 
     private final BeaconHandler beacon_handler;
@@ -249,18 +255,22 @@ class ClientUDPHandler extends UDPHandler
         // Server may reply with list of PVs that it does _not_ have...
         final boolean found = PVABool.decodeBoolean(buffer);
         if (! found)
+        {
+            search_response.handleSearchResponse(-1, server, version, guid);
             return true;
+        }
 
         final int count = Short.toUnsignedInt(buffer.getShort());
         for (int i=0; i<count; ++i)
         {
             final int cid = buffer.getInt();
-            search_response.handleSearchResponse(cid, server, guid);
+            search_response.handleSearchResponse(cid, server, version, guid);
         }
 
         return true;
     }
 
+    @Override
     public void close()
     {
         super.close();

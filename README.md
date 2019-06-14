@@ -73,6 +73,7 @@ Implementation Status
 
 PVA Client:
 
+ * PVA Server list
  * Maintains pool of PVs
  * Registers new PVs with ChannelSearch
  * ChannelSearch: Exponential backup to ~30 seconds

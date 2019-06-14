@@ -42,7 +42,7 @@ import org.epics.pva.network.Network;
  *  @author Kay Kasemir
  */
 @SuppressWarnings("nls")
-public class ChannelSearch
+class ChannelSearch
 {
     /** Channel that's being searched */
     private class SearchedChannel
@@ -228,6 +228,51 @@ public class ChannelSearch
         }
     }
 
+    /** Issue a PVA server list request */
+    public void list()
+    {
+        // Search is invoked for new SearchedChannel(channel, now)
+        // as well as by regular, timed search.
+        // Lock the send buffer to avoid concurrent use.
+        synchronized (send_buffer)
+        {
+            final byte flags = send_buffer.order() == ByteOrder.BIG_ENDIAN ? PVAHeader.FLAG_BIG_ENDIAN : PVAHeader.FLAG_NONE;
+            PVAHeader.encodeMessageHeader(send_buffer, flags, PVAHeader.CMD_SEARCH, 4+1+3+16+2+1+2);
+
+            final int payload_start = send_buffer.position();
+
+            // SEARCH message sequence
+            send_buffer.putInt(0);
+
+            // 0-bit for replyRequired, 7-th bit for "sent as unicast" (1)/"sent as broadcast/multicast" (0)
+            send_buffer.put((byte) 0x81);
+
+            // reserved
+            send_buffer.put((byte) 0);
+            send_buffer.put((byte) 0);
+            send_buffer.put((byte) 0);
+
+            // responseAddress, IPv6 address in case of IP based transport, UDP
+            PVAAddress.encode(udp.getResponseAddress(), send_buffer);
+
+            // responsePort
+            send_buffer.putShort((short)udp.getResponsePort());
+
+            // string[] protocols with count as byte since < 254
+            send_buffer.put((byte)0);
+
+            // struct { int searchInstanceID, string channelName } channels[] with count as short?!
+            send_buffer.putShort((short)0);
+
+            send_buffer.flip();
+            logger.log(Level.FINE, "List Request");
+            sendSearch(payload_start);
+        }
+    }
+
+    /** Issue search for channel
+     *  @param channel Channel to search
+     */
     private void search(final PVAChannel channel)
     {
         // Search is invoked for new SearchedChannel(channel, now)
@@ -277,34 +322,40 @@ public class ChannelSearch
 
             send_buffer.flip();
             logger.log(Level.FINE, "Search Request #" + seq + " for " + channel);
-            for (InetSocketAddress addr : unicast_search_addresses)
-            {
-                try
-                {
-                    logger.log(Level.FINER, () -> "Sending search to UDP  " + addr + " (unicast)\n" + Hexdump.toHexdump(send_buffer));
-                    udp.send(send_buffer, addr);
-                }
-                catch (Exception ex)
-                {
-                    logger.log(Level.WARNING, "Failed to send search request to " + addr, ex);
-                }
-                send_buffer.rewind();
-            }
+            sendSearch(payload_start);
+        }
+    }
 
-            send_buffer.put(payload_start+4, (byte) 0x00);
-            for (InetSocketAddress addr : broadcast_search_addresses)
+    /** Send a 'list' or channel search out via UDP */
+    private void sendSearch(final int payload_start)
+    {
+        for (InetSocketAddress addr : unicast_search_addresses)
+        {
+            try
             {
-                try
-                {
-                    logger.log(Level.FINER, () -> "Sending search to UDP  " + addr + " (broadcast/multicast)\n" + Hexdump.toHexdump(send_buffer));
-                    udp.send(send_buffer, addr);
-                }
-                catch (Exception ex)
-                {
-                    logger.log(Level.WARNING, "Failed to send search request to " + addr, ex);
-                }
-                send_buffer.rewind();
+                logger.log(Level.FINER, () -> "Sending search to UDP  " + addr + " (unicast)\n" + Hexdump.toHexdump(send_buffer));
+                udp.send(send_buffer, addr);
             }
+            catch (Exception ex)
+            {
+                logger.log(Level.WARNING, "Failed to send search request to " + addr, ex);
+            }
+            send_buffer.rewind();
+        }
+
+        send_buffer.put(payload_start+4, (byte) 0x00);
+        for (InetSocketAddress addr : broadcast_search_addresses)
+        {
+            try
+            {
+                logger.log(Level.FINER, () -> "Sending search to UDP  " + addr + " (broadcast/multicast)\n" + Hexdump.toHexdump(send_buffer));
+                udp.send(send_buffer, addr);
+            }
+            catch (Exception ex)
+            {
+                logger.log(Level.WARNING, "Failed to send search request to " + addr, ex);
+            }
+            send_buffer.rewind();
         }
     }
 

@@ -27,11 +27,11 @@ public class PVASettings
     /** Address list. When empty, local subnet is used */
     public static String EPICS_PVA_ADDR_LIST = "";
 
-    /** PVA port for name searches and beacons */
-    public static int EPICS_PVA_BROADCAST_PORT = 5076;
-
     /** First PVA port */
     public static int EPICS_PVA_SERVER_PORT = 5075;
+
+    /** PVA port for name searches and beacons */
+    public static int EPICS_PVA_BROADCAST_PORT = 5076;
 
     /** Multicast address */
     public static String EPICS_PVA_MULTICAST_GROUP = "224.0.0.128";
@@ -46,6 +46,7 @@ public class PVASettings
     static
     {
         EPICS_PVA_ADDR_LIST = set("EPICS_PVA_ADDR_LIST", EPICS_PVA_ADDR_LIST);
+        EPICS_PVA_SERVER_PORT = set("EPICS_PVA_SERVER_PORT", EPICS_PVA_SERVER_PORT);
         EPICS_PVA_BROADCAST_PORT = set("EPICS_PVA_BROADCAST_PORT", EPICS_PVA_BROADCAST_PORT);
         EPICS_CA_CONN_TMO = set("EPICS_CA_CONN_TMO", EPICS_CA_CONN_TMO);
     }

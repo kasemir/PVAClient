@@ -10,8 +10,10 @@ package org.epics.pva.client;
 import static org.epics.pva.PVASettings.logger;
 
 import java.net.InetSocketAddress;
+import java.util.Collection;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
 
@@ -44,6 +46,8 @@ public class PVAClient
 
     final ChannelSearch search;
 
+    private final ConcurrentHashMap<Guid, ServerInfo> list_replies = new ConcurrentHashMap<>();
+
     /** Channels by client ID */
     private final ConcurrentHashMap<Integer, PVAChannel> channels_by_id = new ConcurrentHashMap<>();
 
@@ -66,6 +70,28 @@ public class PVAClient
 
         udp.start();
         search.start();
+    }
+
+    /** List PVA servers
+     *  @param unit How long...
+     *  @param duration ... to await replies
+     *  @return List of servers that have replied
+     *  @throws Exception on error
+     */
+    public Collection<ServerInfo> list(final TimeUnit unit, final long duration) throws Exception
+    {
+        list_replies.clear();
+        search.list();
+        unit.sleep(duration);
+        return list_replies.values();
+    }
+
+    private void handleListResponse(final InetSocketAddress server, final int version, final Guid guid)
+    {
+        logger.log(Level.FINE, () -> guid + " version " + version + ": tcp@" + server);
+        final ServerInfo info = list_replies.computeIfAbsent(guid, g -> new ServerInfo(g));
+        info.version = version;
+        info.addresses.add(server);
     }
 
     /** @return New request ID unique to this client and all its connections */
@@ -151,8 +177,16 @@ public class PVAClient
         search.boost();
     }
 
-    private void handleSearchResponse(final int channel_id, final InetSocketAddress server, final Guid guid)
+    private void handleSearchResponse(final int channel_id, final InetSocketAddress server, final int version, final Guid guid)
     {
+        // Generic server 'list' response?
+        if (channel_id < 0)
+        {
+            handleListResponse(server, version, guid);
+            return;
+        }
+
+        // Reply for specific channel
         final PVAChannel channel = search.unregister(channel_id);
         // Late reply, we already deleted that channel
         if (channel == null)

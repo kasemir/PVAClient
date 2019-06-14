@@ -114,7 +114,9 @@ class ServerUDPHandler extends UDPHandler
         final int seq = buffer.getInt();
 
         // 0-bit for replyRequired, 7-th bit for "sent as unicast" (1)/"sent as broadcast/multicast" (0)
-        /* final byte req = */ buffer.get();
+        final byte flags = buffer.get();
+        final boolean unicast = (flags & 0x80) == 0x80;
+        final boolean reply_required = (flags & 0x01) == 0x01;
 
         // reserved
         buffer.get();
@@ -154,20 +156,30 @@ class ServerUDPHandler extends UDPHandler
                 break;
             }
         }
-        if (! tcp)
-        {
-            logger.log(Level.WARNING, "PVA Client " + from + " sent search #" + seq + " for protocol '" + protocol + "', need 'tcp'");
-            return false;
-        }
 
         // Loop over searched channels
         count = Short.toUnsignedInt(buffer.getShort());
-        for (int i=0; i<count; ++i)
-        {
-            final int cid = buffer.getInt();
-            final String name = PVAString.decodeString(buffer);
-            logger.log(Level.FINER, () -> "PVA Client " + from + " sent search #" + seq + " for " + name + " [" + cid + "]");
-            search_handler.handleSearchRequest(seq, cid, name, client);
+
+        if (count == 0  &&  reply_required)
+        {   // pvlist request
+            logger.log(Level.WARNING, "PVA Client " + from + " sent search #" + seq + " to list servers");
+
+        }
+        else
+        {   // Channel search request
+            if (! tcp)
+            {
+                logger.log(Level.WARNING, "PVA Client " + from + " sent search #" + seq + " for protocol '" + protocol + "', need 'tcp'");
+                // TODO Reply
+                return false;
+            }
+            for (int i=0; i<count; ++i)
+            {
+                final int cid = buffer.getInt();
+                final String name = PVAString.decodeString(buffer);
+                logger.log(Level.FINER, () -> "PVA Client " + from + " sent search #" + seq + " for " + name + " [" + cid + "]");
+                search_handler.handleSearchRequest(seq, cid, name, client);
+            }
         }
         return true;
     }

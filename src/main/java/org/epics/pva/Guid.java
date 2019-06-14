@@ -14,6 +14,7 @@ import java.util.Arrays;
 /** Globally unique ID
  *  @author Kay Kasemir
  */
+@SuppressWarnings("nls")
 public class Guid
 {
     // Random number generator in holder to defer initialization
@@ -43,7 +44,13 @@ public class Guid
     {
         buffer.put(guid);
     }
-    
+
+    @Override
+    public int hashCode()
+    {
+        return Arrays.hashCode(guid);
+    }
+
     @Override
     public boolean equals(final Object obj)
     {
@@ -57,14 +64,13 @@ public class Guid
     public String toString()
     {
         final StringBuilder buf = new StringBuilder(35);
+        buf.append("GUID 0x");
         for (byte b : guid)
         {
-            if (buf.length() > 0)
-                buf.append('-');
             final int i = Byte.toUnsignedInt(b);
             if (i < 16)
                 buf.append('0');
-            buf.append(Integer.toHexString(i));
+            buf.append(Integer.toHexString(i).toUpperCase());
         }
         return buf.toString();
     }

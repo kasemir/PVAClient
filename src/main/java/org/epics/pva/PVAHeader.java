@@ -10,7 +10,16 @@ package org.epics.pva;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 
-/** PVA Message Header Command Codes */
+/** PVA Message Header
+ *
+ *  <pre>
+ *  byte PVA_MAGIC
+ *  byte PVA_PROTOCOL_REVISION
+ *  byte FLAG_*
+ *  byte CMD_*
+ *  int payload_size
+ *  </pre>
+ */
 @SuppressWarnings("nls")
 public class PVAHeader
 {

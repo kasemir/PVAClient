@@ -46,7 +46,7 @@ public class ClientDemo
         final PVAClient pva = new PVAClient();
 
         final PVAChannel ch1 = pva.getChannel("ramp");
-        final PVAChannel ch2 = pva.getChannel("saw");
+        final PVAChannel ch2 = pva.getChannel("ramp2");
         CompletableFuture.allOf(ch1.connect(), ch2.connect()).get(5, TimeUnit.SECONDS);
         assertTrue(ch1.isConnected());
         assertTrue(ch2.isConnected());
