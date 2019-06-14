@@ -91,13 +91,20 @@ public class PVAServer
 
     private void handleSearchRequest(final int seq, final int cid, final String name, final InetSocketAddress addr)
     {
-        // Known channel?
-        final ServerPV pv = getPV(name);
-        if (pv != null)
+        if (cid < 0)
+        {   // 'List servers' search, no specific name
+            POOL.execute(() -> udp.sendSearchReply(guid, 0, -1, tcp, addr));
+        }
+        else
         {
-            // Reply with TCP connection info
-            logger.log(Level.FINE, "Received Search for known PV " + pv);
-            POOL.execute(() -> udp.sendSearchReply(guid, seq, cid, tcp, addr));
+            // Known channel?
+            final ServerPV pv = getPV(name);
+            if (pv != null)
+            {
+                // Reply with TCP connection info
+                logger.log(Level.FINE, "Received Search for known PV " + pv);
+                POOL.execute(() -> udp.sendSearchReply(guid, seq, cid, tcp, addr));
+            }
         }
     }
 

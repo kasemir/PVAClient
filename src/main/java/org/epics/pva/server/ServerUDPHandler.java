@@ -32,12 +32,15 @@ import org.epics.pva.network.UDPHandler;
 @SuppressWarnings("nls")
 class ServerUDPHandler extends UDPHandler
 {
+    /** Invoked when client sends a generic 'list servers'
+     *  as well as a specific PV name search
+     */
     @FunctionalInterface
     public interface SearchHandler
     {
         /** @param seq Client's search sequence
-         *  @param cid Client channel ID
-         *  @param name Channel name
+         *  @param cid Client channel ID or -1
+         *  @param name Channel name or <code>null</code>
          *  @param addr Client's address and TCP port
          */
         public void handleSearchRequest(int seq, int cid, String name, InetSocketAddress addr);
@@ -162,15 +165,14 @@ class ServerUDPHandler extends UDPHandler
 
         if (count == 0  &&  reply_required)
         {   // pvlist request
-            logger.log(Level.WARNING, "PVA Client " + from + " sent search #" + seq + " to list servers");
-
+            logger.log(Level.FINER, () -> "PVA Client " + from + " sent search #" + seq + " to list servers");
+            search_handler.handleSearchRequest(0, -1, null, client);
         }
         else
         {   // Channel search request
             if (! tcp)
             {
                 logger.log(Level.WARNING, "PVA Client " + from + " sent search #" + seq + " for protocol '" + protocol + "', need 'tcp'");
-                // TODO Reply
                 return false;
             }
             for (int i=0; i<count; ++i)
@@ -187,7 +189,7 @@ class ServerUDPHandler extends UDPHandler
     /** Send a "channel found" reply to a client's search
      *  @param guid This server's GUID
      *  @param seq Client search request sequence number
-     *  @param cid Client's channel ID
+     *  @param cid Client's channel ID or -1
      *  @param tcp TCP connection where client can connect to this server
      *  @param client Address of client's UDP port
      */
@@ -214,8 +216,13 @@ class ServerUDPHandler extends UDPHandler
             PVABool.encodeBoolean(true, sendBuffer);
 
             // int[] cid;
-            sendBuffer.putShort((short)1);
-            sendBuffer.putInt(cid);
+            if (cid < 0)
+                sendBuffer.putShort((short)0);
+            else
+            {
+                sendBuffer.putShort((short)1);
+                sendBuffer.putInt(cid);
+            }
 
             sendBuffer.flip();
             logger.log(Level.FINER, () -> "Sending search reply to " + client + "\n" + Hexdump.toHexdump(sendBuffer));
