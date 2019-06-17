@@ -197,6 +197,22 @@ public class ClientDemo
     }
 
     @Test
+    public void testMonitor() throws Exception
+    {
+        final PVAClient pva = new PVAClient();
+        final PVAChannel channel = pva.getChannel("ramp");
+        channel.connect().get(5, TimeUnit.SECONDS);
+
+        final int subscription = channel.subscribe("", (ch, changes, overruns, data) -> System.out.println(data));
+        TimeUnit.SECONDS.sleep(3);
+        channel.unsubscribe(subscription);
+        TimeUnit.SECONDS.sleep(3);
+
+        channel.close();
+        pva.close();
+    }
+
+    @Test
     public void testAll() throws Exception
     {
         // Create a client
