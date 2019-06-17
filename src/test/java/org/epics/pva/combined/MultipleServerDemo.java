@@ -31,7 +31,9 @@ public class MultipleServerDemo
         // Configure logging
         LogManager.getLogManager().readConfiguration(PVASettings.class.getResourceAsStream("/logging.properties"));
         final Logger root = Logger.getLogger("");
-        root.setLevel(Level.CONFIG);
+        // Profiler shows blocking in ConsoleHandler,
+        // so reduce log messages to only warnings for performance tests
+        root.setLevel(Level.WARNING);
         for (Handler handler : root.getHandlers())
             handler.setLevel(root.getLevel());
 
