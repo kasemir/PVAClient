@@ -7,9 +7,9 @@
  ******************************************************************************/
 package org.epics.pva.combined;
 
-import java.time.Instant;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ForkJoinPool;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.Future;
 import java.util.logging.Handler;
 import java.util.logging.Level;
 import java.util.logging.LogManager;
@@ -18,45 +18,14 @@ import java.util.logging.Logger;
 import org.epics.pva.PVASettings;
 import org.epics.pva.client.PVAChannel;
 import org.epics.pva.client.PVAClient;
-import org.epics.pva.data.PVADouble;
 import org.epics.pva.data.PVAStructure;
-import org.epics.pva.data.nt.PVATimeStamp;
-import org.epics.pva.server.PVAServer;
-import org.epics.pva.server.ServerPV;
 
-/** Start PVA Server, keep connecting, read, disconnect
+/** Start multiple PVA Servers, keep connecting, read, disconnect
  *  @author Kay Kasemir
  */
 @SuppressWarnings("nls")
-public class ConnectDemo
+public class MultipleServerDemo
 {
-    static void serve(final String name)
-    {
-        try
-        {
-            final PVAServer server = new PVAServer();
-
-            final PVATimeStamp time = new PVATimeStamp();
-            final PVADouble value = new PVADouble("value", 3.13);
-            final PVAStructure data = new PVAStructure("demo", "demo_t",
-                                                       value,
-                                                       time);
-            time.set(Instant.now());
-            final ServerPV pv = server.createPV(name, data);
-            while (true)
-            {
-                TimeUnit.SECONDS.sleep(1);
-                value.set(value.get() + 1);
-                time.set(Instant.now());
-                pv.update(data);
-            }
-        }
-        catch (Exception ex)
-        {
-            ex.printStackTrace();
-        }
-    }
-
     public static void main(String[] args) throws Exception
     {
         // Configure logging
@@ -67,20 +36,30 @@ public class ConnectDemo
             handler.setLevel(root.getLevel());
 
         // Start PVA server
-        ForkJoinPool.commonPool().submit(() -> serve("demo1"));
+        ForkJoinPool.commonPool().submit(() -> ConnectDemo.serve("demo1"));
+        ForkJoinPool.commonPool().submit(() -> ConnectDemo.serve("demo2"));
+        ForkJoinPool.commonPool().submit(() -> ConnectDemo.serve("demo3"));
 
         // PVA Client
         final PVAClient pva = new PVAClient();
         while (true)
         {
             System.err.println("\nCREATE CHANNEL ----------------------------");
-            final PVAChannel ch = pva.getChannel("demo1");
-            ch.connect().get();
+            final PVAChannel ch1 = pva.getChannel("demo1");
+            final PVAChannel ch2 = pva.getChannel("demo2");
+            final PVAChannel ch3 = pva.getChannel("demo3");
+            CompletableFuture.allOf(ch1.connect(), ch2.connect(), ch3.connect()).get();
             System.err.println("READ --------------------------------------");
-            final PVAStructure data = ch.read("").get();
-            System.err.println(ch.getName() + " = " + data.get("value"));
+            final Future<PVAStructure> data1 = ch1.read(""),
+                                       data2 = ch2.read(""),
+                                       data3 = ch3.read("");
+            System.err.println(ch1.getName() + " = " + data1.get().get("value"));
+            System.err.println(ch2.getName() + " = " + data2.get().get("value"));
+            System.err.println(ch3.getName() + " = " + data3.get().get("value"));
             System.err.println("CLOSE -------------------------------------\n");
-            ch.close();
+            ch3.close();
+            ch2.close();
+            ch1.close();
             // TimeUnit.SECONDS.sleep(1);
         }
     }

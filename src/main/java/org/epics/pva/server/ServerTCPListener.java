@@ -55,27 +55,47 @@ class ServerTCPListener
     public ServerTCPListener(final PVAServer server) throws Exception
     {
         this.server = server;
-        server_socket = ServerSocketChannel.open();
-        server_socket.configureBlocking(true);
-        server_socket.socket().setReuseAddress(true);
-        try
-        {
-            server_socket.bind(new InetSocketAddress(PVASettings.EPICS_PVA_SERVER_PORT));
-        }
-        catch (BindException ex)
-        {
-            logger.log(Level.INFO, "TCP port " + PVASettings.EPICS_PVA_SERVER_PORT + " already in use, switching to automatically assigned port");
-            server_socket.bind(new InetSocketAddress(0));
-        }
+        server_socket = createSocket();
 
         final InetSocketAddress local_address = (InetSocketAddress) server_socket.getLocalAddress();
         response_address = local_address.getAddress();
         response_port = local_address.getPort();
+        logger.log(Level.CONFIG, "Listening on TCP " + local_address);
 
         // Start accepting connections
         listen_thread = new Thread(this::listen, "TCP-listener " + response_address + ":" + response_port);
         listen_thread.setDaemon(true);
         listen_thread.start();
+    }
+
+    /** @return Socket bound to EPICS_PVA_SERVER_PORT or unused port */
+    private static ServerSocketChannel createSocket() throws Exception
+    {
+        ServerSocketChannel socket = ServerSocketChannel.open();
+        socket.configureBlocking(true);
+        socket.socket().setReuseAddress(true);
+        try
+        {
+            socket.bind(new InetSocketAddress(PVASettings.EPICS_PVA_SERVER_PORT));
+            return socket;
+        }
+        catch (BindException ex)
+        {
+            logger.log(Level.INFO, "TCP port " + PVASettings.EPICS_PVA_SERVER_PORT + " already in use, switching to automatically assigned port");
+            final InetSocketAddress any = new InetSocketAddress(0);
+            try
+            {   // Must create new socket after bind() failed, cannot re-use
+                socket = ServerSocketChannel.open();
+                socket.configureBlocking(true);
+                socket.socket().setReuseAddress(true);
+                socket.bind(any);
+                return socket;
+            }
+            catch (Exception e)
+            {
+                throw new Exception("Cannot bind to automatically assigned port " + any, e);
+            }
+        }
     }
 
     private void listen()
