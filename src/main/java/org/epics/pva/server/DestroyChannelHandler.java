@@ -34,11 +34,26 @@ class DestroyChannelHandler implements CommandHandler<ServerTCPHandler>
         final int cid = buffer.getInt();
         final ServerPV pv = tcp.getServer().getPV(sid);
         if (pv == null)
+        {
             logger.log(Level.WARNING, "Received destroy channel request for unknown SID " + sid + ", cid " + cid);
-        else
-            logger.log(Level.FINE, "Received destroy channel request for " + pv);
+            return;
+        }
+
+        logger.log(Level.FINE, "Received destroy channel request for " + pv);
         // Nothing to do to remove channel,
         // since this doesn't delete the PV on the server,
         // only the client's idea of the channel connection
+        sendChannelDetroyed(tcp, cid, sid);
+    }
+
+    private void sendChannelDetroyed(final ServerTCPHandler tcp, final int cid, final int sid)
+    {
+        tcp.submit((version, buffer) ->
+        {
+            logger.log(Level.FINE, () -> "Sending destroy channel confirmation for SID " + sid + ", cid " + cid);
+            PVAHeader.encodeMessageHeader(buffer, PVAHeader.FLAG_SERVER, PVAHeader.CMD_DESTROY_CHANNEL, 4+4);
+            buffer.putInt(sid);
+            buffer.putInt(cid);
+        });
     }
 }
