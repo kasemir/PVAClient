@@ -294,11 +294,12 @@ public class PVAStructure extends PVADataWithID
      *  @param index Element index
      *  @return Located element or <code>null</code>
      */
-    public PVAData get(final int index)
+    @SuppressWarnings("unchecked")
+    public <PVA extends PVAData> PVA get(final int index)
     {
         final Object result = getElementOrNextIndex(0, index);
         if (result instanceof PVAData)
-            return (PVAData) result;
+            return (PVA) result;
         return null;
     }
 

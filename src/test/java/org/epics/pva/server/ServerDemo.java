@@ -14,9 +14,9 @@ import java.util.logging.LogManager;
 import org.epics.pva.PVASettings;
 import org.epics.pva.data.PVADouble;
 import org.epics.pva.data.PVAInt;
-import org.epics.pva.data.PVALong;
 import org.epics.pva.data.PVAString;
 import org.epics.pva.data.PVAStructure;
+import org.epics.pva.data.nt.PVATimeStamp;
 
 /** PVA Server Demo
  *  @author Kay Kasemir
@@ -30,20 +30,12 @@ public class ServerDemo
 
         final PVAServer server = new PVAServer();
 
-        final PVALong secs = new PVALong("secondsPastEpoch", false, 0);
-        final PVAInt nano = new PVAInt("nanoseconds", false,  0);
-        final PVAStructure time = new PVAStructure("timeStamp", "time_t",
-                                                   secs,
-                                                   nano,
-                                                   new PVAInt("userTag", 0));
-
+        final PVATimeStamp time = new PVATimeStamp();
         final PVAStructure data = new PVAStructure("demo", "demo_t",
                                                    new PVADouble("value", 3.13),
                                                    new PVAString("tag",   "Hello!"),
                                                    time);
-        Instant now = Instant.now();
-        secs.set(now.getEpochSecond());
-        nano.set(now.getNano());
+        time.set(Instant.now());
         final ServerPV pv = server.createPV("demo", data);
         final ServerPV pv2 = server.createPV("demo2", data);
         for (int i=0; i<30000; ++i)
@@ -57,14 +49,10 @@ public class ServerDemo
             // and determines which elements of the data have changed.
             final PVADouble value = data.get("value");
             value.set(value.get() + 1);
-
-            now = Instant.now();
-            secs.set(now.getEpochSecond());
-            nano.set(now.getNano());
+            time.set(Instant.now());
 
             pv.update(data);
             pv2.update(data);
-
 
             // Alternative 1:
             // Client locks and unlocks the data,
