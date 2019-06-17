@@ -7,9 +7,12 @@
  ******************************************************************************/
 package org.epics.pva.server;
 
+import static org.epics.pva.PVASettings.logger;
+
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentHashMap.KeySetView;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.logging.Level;
 
 import org.epics.pva.data.PVAStructure;
 
@@ -48,14 +51,20 @@ public class ServerPV
     /** @param subscription Subscription that needs to receive value updates */
     void register(final MonitorSubscription subscription)
     {
+        logger.log(Level.FINER, () -> "Add " + subscription);
         subscriptions.add(subscription);
     }
 
-    void unregister(int req, ServerTCPHandler tcp)
+    /** Forget monitor subscriptions
+     *  @param tcp TCP connection for which to forget monitors
+     *  @param req Specific monitor request or -1 to forget subscriptions for that connection
+     */
+    void unregister(final ServerTCPHandler tcp, final int req)
     {
         for (MonitorSubscription subscription : subscriptions)
             if (subscription.isFor(tcp, req))
             {
+                logger.log(Level.FINER, () -> "Remove " + subscription);
                 subscriptions.remove(subscription);
                 break;
             }

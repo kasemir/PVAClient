@@ -52,7 +52,7 @@ public class ImageDemo
         System.out.println(ch.read("").get());
 
         // Monitor updates
-        final MonitorListener monitor_listener = (channel, changed, data) ->
+        final MonitorListener monitor_listener = (channel, changed, overruns, data) ->
         {
             final PVAUnion value = data.get("value");
             final PVAShortArray array = value.get();

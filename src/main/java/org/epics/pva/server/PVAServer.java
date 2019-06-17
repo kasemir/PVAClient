@@ -121,6 +121,9 @@ public class PVAServer
         // If this is still a known handler, close it, but don't wait
         if (tcp_handlers.remove(tcp_connection))
             tcp_connection.close(false);
+
+        for (ServerPV pv : pv_by_name.values())
+            pv.unregister(tcp_connection, -1);
     }
 
     /** Close all connections */

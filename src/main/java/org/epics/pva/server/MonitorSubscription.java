@@ -79,8 +79,7 @@ class MonitorSubscription
 
     boolean isFor(final ServerTCPHandler tcp, final int req)
     {
-        return this.req == req  &&
-               this.tcp == tcp;
+        return this.tcp == tcp  &&  (req == -1 || this.req == req);
     }
 
     void update(final PVAStructure new_data) throws Exception
@@ -101,6 +100,8 @@ class MonitorSubscription
         // Only submit when there's not already one pending, waiting to be sent out
         if (pending.compareAndSet(false, true))
             tcp.submit(this::encodeMonitor);
+        else
+            logger.log(Level.WARNING, "Skipping " + this);
     }
 
     private void encodeMonitor(final byte version, final ByteBuffer buffer) throws Exception
@@ -144,5 +145,11 @@ class MonitorSubscription
 
         final int payload_end = buffer.position();
         buffer.putInt(PVAHeader.HEADER_OFFSET_PAYLOAD_SIZE, payload_end - payload_start);
+    }
+
+    @Override
+    public String toString()
+    {
+        return "Monitor Subscription(" + pv + ", " + tcp + ")";
     }
 }

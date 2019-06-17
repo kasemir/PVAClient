@@ -225,7 +225,7 @@ public class ClientDemo
         System.out.println(data.get("value"));
 
         // Subscribe
-        final MonitorListener monitor_listener = (channel, changes, update) ->
+        final MonitorListener monitor_listener = (channel, changes, overruns, update) ->
         {
             System.out.println("Update for " + channel.getName() + ":");
             if (changes.get(0)  ||  ! (update instanceof PVAStructure))

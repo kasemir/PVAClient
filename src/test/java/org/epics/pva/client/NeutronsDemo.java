@@ -59,7 +59,7 @@ public class NeutronsDemo
         System.out.println(ch.read("proton_charge").get(2, TimeUnit.SECONDS));
 
         // Monitor updates
-        MonitorListener monitor_listener = (channel, changed, data) ->
+        MonitorListener monitor_listener = (channel, changes, overruns, data) ->
         {
             System.out.println(data);
         };

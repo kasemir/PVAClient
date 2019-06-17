@@ -30,7 +30,7 @@ import org.epics.pva.server.ServerPV;
 @SuppressWarnings("nls")
 public class ConnectDemo
 {
-    static void serve(final String name)
+    static void serve(final String name, final TimeUnit update, final long delay)
     {
         try
         {
@@ -45,7 +45,7 @@ public class ConnectDemo
             final ServerPV pv = server.createPV(name, data);
             while (true)
             {
-                TimeUnit.SECONDS.sleep(1);
+                update.sleep(delay);
                 value.set(value.get() + 1);
                 time.set(Instant.now());
                 pv.update(data);
@@ -67,7 +67,7 @@ public class ConnectDemo
             handler.setLevel(root.getLevel());
 
         // Start PVA server
-        ForkJoinPool.commonPool().submit(() -> serve("demo1"));
+        ForkJoinPool.commonPool().submit(() -> serve("demo1", TimeUnit.SECONDS, 1));
 
         // PVA Client
         final PVAClient pva = new PVAClient();

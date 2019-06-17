@@ -18,9 +18,9 @@ import java.util.logging.LogManager;
 import java.util.logging.Logger;
 
 import org.epics.pva.PVASettings;
-import org.epics.pva.client.PVAChannel;
 import org.epics.pva.client.ClientChannelState;
 import org.epics.pva.client.MonitorListener;
+import org.epics.pva.client.PVAChannel;
 import org.epics.pva.client.PVAClient;
 import org.epics.pva.data.PVAData;
 
@@ -144,7 +144,7 @@ public class PVAClientMain
     private static void monitor(final List<String> names) throws Exception
     {
         final PVAClient pva = new PVAClient();
-        final MonitorListener listener = (ch, changes, data) ->
+        final MonitorListener listener = (ch, changes, overruns, data) ->
         {
             System.out.println(ch.getName() + " = " + data);
         };

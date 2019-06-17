@@ -26,9 +26,11 @@ public interface MonitorListener
      *
      *  @param channel Channel that received an update
      *  @param changes Elements of the structure that changed
+     *  @param overruns Elements of the structure with skipped updates
      *  @param data Complete data, merges existing value and changes
      */
     public void handleMonitor(final PVAChannel channel,
                               final BitSet changes,
+                              final BitSet overruns,
                               final PVAStructure data);
 }

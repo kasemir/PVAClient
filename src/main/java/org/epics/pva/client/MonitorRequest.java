@@ -156,7 +156,7 @@ class MonitorRequest implements RequestEncoder, ResponseHandler
             logger.log(Level.FINER, () -> "Overruns: " + overrun);
 
             // Notify listener of latest value
-            listener.handleMonitor(channel, changes, data);
+            listener.handleMonitor(channel, changes, overrun, data);
         }
     }
 

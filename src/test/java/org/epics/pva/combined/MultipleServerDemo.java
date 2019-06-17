@@ -10,6 +10,7 @@ package org.epics.pva.combined;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ForkJoinPool;
 import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 import java.util.logging.Handler;
 import java.util.logging.Level;
 import java.util.logging.LogManager;
@@ -38,9 +39,9 @@ public class MultipleServerDemo
             handler.setLevel(root.getLevel());
 
         // Start PVA server
-        ForkJoinPool.commonPool().submit(() -> ConnectDemo.serve("demo1"));
-        ForkJoinPool.commonPool().submit(() -> ConnectDemo.serve("demo2"));
-        ForkJoinPool.commonPool().submit(() -> ConnectDemo.serve("demo3"));
+        ForkJoinPool.commonPool().submit(() -> ConnectDemo.serve("demo1", TimeUnit.SECONDS, 1));
+        ForkJoinPool.commonPool().submit(() -> ConnectDemo.serve("demo2", TimeUnit.SECONDS, 1));
+        ForkJoinPool.commonPool().submit(() -> ConnectDemo.serve("demo3", TimeUnit.SECONDS, 1));
 
         // PVA Client
         final PVAClient pva = new PVAClient();

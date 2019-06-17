@@ -69,7 +69,7 @@ class MonitorHandler implements CommandHandler<ServerTCPHandler>
         {
             logger.log(Level.FINE, () -> "Received MONITOR STOP/DESTROY for  " + pv);
             // Stop/cancel/remove subscription
-            pv.unregister(req, tcp);
+            pv.unregister(tcp, req);
         }
         else
         {

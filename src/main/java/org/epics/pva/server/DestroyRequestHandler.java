@@ -37,7 +37,7 @@ class DestroyRequestHandler implements CommandHandler<ServerTCPHandler>
         // Locate monitor subscription
         final ServerPV pv = tcp.getServer().getPV(sid);
         if (pv != null)
-            pv.unregister(req, tcp);
+            pv.unregister(tcp, req);
         else
             logger.log(Level.FINE, "Received request destroy command for unknown PV with SID " + sid + " request " + req);
     }
