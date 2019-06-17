@@ -293,12 +293,17 @@ public class PVAChannel
         }
         else
         {   // Try to destroy channel on server.
-            // If we can still reach the server, it should confirm deletion,
-            // and the client can then forget the channel.
-            // Depending on situation, however, we may no longer reach the server.
             final ClientTCPHandler safe = tcp.get();
             if (safe != null)
+            {   // If we can still reach the server, it should confirm deletion,
+                // and channelDestroyed() is invoked to forget the channel.
+                // Depending on situation, however, we may no longer reach the server,
+                // in which case the channel will not be forgotten
+                // until the PVAClient is closed...
                 safe.submit(new DestroyChannelRequest(this));
+            }
+            else
+                client.forgetChannel(this);
         }
     }
 

@@ -84,6 +84,7 @@ public class ConnectDemo
             System.err.println(ch.getName() + " = " + data.get("value"));
             System.err.println("CLOSE -------------------------------------\n");
             ch.close();
+            // TimeUnit.SECONDS.sleep(1);
         }
     }
 }
