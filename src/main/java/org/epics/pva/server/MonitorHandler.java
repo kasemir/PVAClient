@@ -36,15 +36,19 @@ class MonitorHandler implements CommandHandler<ServerTCPHandler>
 
         // int serverChannelID;
         final int sid = buffer.getInt();
-        final ServerPV pv = tcp.getServer().getPV(sid);
-        if (pv == null)
-            throw new Exception("MONITOR request for unknown PV sid " + sid);
 
         // int requestID
         final int req = buffer.getInt();
 
         // byte sub command = 0x08 for INIT
         final byte subcmd = buffer.get();
+
+        final ServerPV pv = tcp.getServer().getPV(sid);
+        if (pv == null)
+        {
+            GetHandler.sendError(tcp, PVAHeader.CMD_MONITOR, req, subcmd, "bad channel id");
+            return;
+        }
 
         if (subcmd == PVAHeader.CMD_SUB_INIT)
         {

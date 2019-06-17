@@ -158,9 +158,9 @@ public class PVAChannel
     {
         if (state.compareAndSet(ClientChannelState.FOUND, ClientChannelState.CONNECTED))
         {
-            connected.complete(true);
             this.sid = sid;
             logger.log(Level.FINE, () -> "Received create channel reply " + this + ", SID " + sid);
+            connected.complete(true);
             synchronized (state)
             {
                 state.notifyAll();

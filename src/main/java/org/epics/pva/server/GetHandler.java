@@ -37,19 +37,23 @@ class GetHandler implements CommandHandler<ServerTCPHandler>
     {
         if (buffer.remaining() < 4+4+1)
             throw new Exception("Incomplete GET, only " + buffer.remaining());
-        
+
         // int serverChannelID;
         final int sid = buffer.getInt();
-        final ServerPV pv = tcp.getServer().getPV(sid);
-        if (pv == null)
-            throw new Exception("GET request for unknown PV sid " + sid);
-        
+
         // int requestID
         final int req = buffer.getInt();
-        
+
         // byte sub command = 0x08 for INIT
         final byte subcmd = buffer.get();
-        
+
+        final ServerPV pv = tcp.getServer().getPV(sid);
+        if (pv == null)
+        {
+            sendError(tcp, PVAHeader.CMD_GET, req, subcmd, "bad channel id");
+            return;
+        }
+
         if (subcmd == PVAHeader.CMD_SUB_INIT)
         {
             // FieldDesc pvRequestIF
@@ -64,7 +68,24 @@ class GetHandler implements CommandHandler<ServerTCPHandler>
             sendGetReply(tcp, req, pv);
         }
     }
-    
+
+    static void sendError(final ServerTCPHandler tcp, final byte command, final int req, final byte subcmd, final String message)
+    {
+        tcp.submit((version, buffer) ->
+        {
+            logger.log(Level.FINE, () -> "Sending error: " + message);
+
+            PVAHeader.encodeMessageHeader(buffer, PVAHeader.FLAG_SERVER, command, 0);
+            final int payload_start = buffer.position();
+            buffer.putInt(req);
+            buffer.put(subcmd);
+            final PVAStatus error = new PVAStatus(PVAStatus.Type.ERROR, message, "");
+            error.encode(buffer);
+
+            buffer.putInt(PVAHeader.HEADER_OFFSET_PAYLOAD_SIZE, buffer.position() - payload_start);
+        });
+    }
+
     static void sendDataInitReply(final ServerTCPHandler tcp, final byte command, final int req, final ServerPV pv, final PVAData requested_type)
     {
         // Like QSRV, ignore the requested type and send pv.data
@@ -86,9 +107,9 @@ class GetHandler implements CommandHandler<ServerTCPHandler>
             type.encodeType(buffer, described);
             final int payload_end = buffer.position();
             buffer.putInt(PVAHeader.HEADER_OFFSET_PAYLOAD_SIZE, payload_end - payload_start);
-        });   
+        });
     }
-    
+
     private void sendGetReply(final ServerTCPHandler tcp, final int req, final ServerPV pv)
     {
         // Like QSRV, ignore the requested type and send pv.data
@@ -113,6 +134,6 @@ class GetHandler implements CommandHandler<ServerTCPHandler>
             data.encode(buffer);
             final int payload_end = buffer.position();
             buffer.putInt(PVAHeader.HEADER_OFFSET_PAYLOAD_SIZE, payload_end - payload_start);
-        });   
+        });
     }
 }
