@@ -60,9 +60,8 @@ abstract public class UDPHandler
     /** Handle one or more reply messages
      *  @param from
      *  @param buffer
-     *  @return Were all messages successfully handled?
      */
-    private boolean handleMessages(final InetSocketAddress from, final ByteBuffer buffer)
+    private void handleMessages(final InetSocketAddress from, final ByteBuffer buffer)
     {
         while (buffer.remaining() >= PVAHeader.HEADER_SIZE)
         {
@@ -70,7 +69,7 @@ abstract public class UDPHandler
             if (b != PVAHeader.PVA_MAGIC)
             {
                 logger.log(Level.WARNING, "Received UDP packet with invalid magic startbyte from " + from);
-                return false;
+                return;
             }
 
             final byte version = buffer.get();
@@ -88,7 +87,7 @@ abstract public class UDPHandler
             {
                 logger.log(Level.WARNING, "Received UDP packet with expected payload of " +
                         payload + " but only " + buffer.remaining() + " bytes of data from " + from);
-                return false;
+                return;
             }
 
             // Skip control messages
@@ -97,13 +96,12 @@ abstract public class UDPHandler
                 // If message cannot be decoded,
                 // this might indicate overall message corruption
                 if (! handleMessage(from, version, command, payload, buffer))
-                    return false;
+                    return;
             }
 
             // Position on next message in case handleMessage read too much or too little
             buffer.position(next);
         }
-        return true;
     }
 
     abstract protected boolean handleMessage(final InetSocketAddress from, final byte version,

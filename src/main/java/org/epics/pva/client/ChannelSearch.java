@@ -234,7 +234,7 @@ class ChannelSearch
         synchronized (send_buffer)
         {
             final int payload_start = send_buffer.position() + PVAHeader.HEADER_SIZE;
-            SearchRequest.encode(true, 0, -1, null, udp.getResponseAddress(), (short)udp.getResponsePort(), send_buffer);
+            SearchRequest.encode(true, 0, -1, null, udp.getResponseAddress(), send_buffer);
             send_buffer.flip();
             logger.log(Level.FINE, "List Request");
             sendSearch(payload_start);
@@ -253,7 +253,7 @@ class ChannelSearch
         {
             final int payload_start = send_buffer.position() + PVAHeader.HEADER_SIZE;
             final int seq = search_sequence.incrementAndGet();
-            SearchRequest.encode(true, seq, channel.getId(), channel.getName(), udp.getResponseAddress(), (short)udp.getResponsePort(), send_buffer);
+            SearchRequest.encode(true, seq, channel.getId(), channel.getName(), udp.getResponseAddress(), send_buffer);
             send_buffer.flip();
             logger.log(Level.FINE, "Search Request #" + seq + " for " + channel);
             sendSearch(payload_start);

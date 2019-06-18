@@ -123,78 +123,28 @@ class ServerUDPHandler extends UDPHandler
     private boolean handleSearch(final InetSocketAddress from, final byte version,
                                  final int payload, final ByteBuffer buffer)
     {
-        // Search Sequence ID
-        final int seq = buffer.getInt();
-
-        // 0-bit for replyRequired, 7-th bit for "sent as unicast" (1)/"sent as broadcast/multicast" (0)
-        final byte flags = buffer.get();
-        final boolean unicast = (flags & 0x80) == 0x80;
-        final boolean reply_required = (flags & 0x01) == 0x01;
-
-        // reserved
-        buffer.get();
-        buffer.get();
-        buffer.get();
-
-        // responseAddress, IPv6 address in case of IP based transport, UDP
-        final InetAddress addr;
-        try
-        {
-            addr = PVAAddress.decode(buffer);
-        }
-        catch (Exception ex)
-        {
-            logger.log(Level.WARNING, "PVA Client " + from + " sent search #" + seq + " with invalid address");
+        final SearchRequest search = SearchRequest.decode(from, version, payload, buffer);
+        if (search == null)
             return false;
-        }
-        final int port = Short.toUnsignedInt(buffer.getShort());
 
-        // Use address from message unless it's a generic local address
-        final InetSocketAddress client;
-        if (addr.isAnyLocalAddress())
-            client = new InetSocketAddress(from.getAddress(), port);
-        else
-            client = new InetSocketAddress(addr, port);
-
-        // Assert that client supports "tcp", ignore rest
-        boolean tcp = false;
-        int count = Byte.toUnsignedInt(buffer.get());
-        String protocol = "<none>";
-        for (int i=0; i<count; ++i)
+        if (search.name == null)
         {
-            protocol = PVAString.decodeString(buffer);
-            if ("tcp".equals(protocol))
-            {
-                tcp = true;
-                break;
+            if (search.reply_required)
+            {   // pvlist request
+                search_handler.handleSearchRequest(0, -1, null, search.client);
+                if (search.unicast)
+                    PVAServer.POOL.submit(() -> forwardSearchRequest(0, -1, null, search.client));
             }
-        }
-
-        // Loop over searched channels
-        count = Short.toUnsignedInt(buffer.getShort());
-
-        if (count == 0  &&  reply_required)
-        {   // pvlist request
-            logger.log(Level.FINER, () -> "PVA Client " + from + " sent search #" + seq + " to list servers");
-            search_handler.handleSearchRequest(0, -1, null, client);
-            if (unicast)
-                PVAServer.POOL.submit(() -> forwardSearchRequest(0, -1, null, client.getAddress(), (short)client.getPort()));
         }
         else
         {   // Channel search request
-            if (! tcp)
+            for (int i=0; i<search.name.length; ++i)
             {
-                logger.log(Level.WARNING, "PVA Client " + from + " sent search #" + seq + " for protocol '" + protocol + "', need 'tcp'");
-                return false;
-            }
-            for (int i=0; i<count; ++i)
-            {
-                final int cid = buffer.getInt();
-                final String name = PVAString.decodeString(buffer);
-                logger.log(Level.FINER, () -> "PVA Client " + from + " sent search #" + seq + " for " + name + " [" + cid + "]");
-                search_handler.handleSearchRequest(seq, cid, name, client);
-                if (unicast)
-                    PVAServer.POOL.submit(() -> forwardSearchRequest(seq, cid, name, client.getAddress(), (short)client.getPort()));
+                final int cid = search.cid[i];
+                final String name = search.name[i];
+                search_handler.handleSearchRequest(search.seq, cid, name, search.client);
+                if (search.unicast)
+                    PVAServer.POOL.submit(() -> forwardSearchRequest(search.seq, cid, name, search.client));
             }
         }
 
@@ -203,9 +153,11 @@ class ServerUDPHandler extends UDPHandler
 
     /** Forward a search request that we received as unicast to the local multicast group
      *
-     *  <p>This allows other local UDP listeners to see the message,
-     *  which we received because we're the last program to attach to the UDP port,
-     *  shielding unicast messages to already running listeners.
+     *  <p>For example, when two servers run on the same host,
+     *  only the one started last will see UDP search requests unicast from a remote client.
+     *
+     *  <p>This method forwards them to the local multicast group,
+     *  allowing all servers on this host to reply.
      *
      *  @param seq Search sequence or 0
      *  @param cid Channel ID or -1
@@ -213,14 +165,14 @@ class ServerUDPHandler extends UDPHandler
      *  @param address Client's address ..
      *  @param port    .. and port
      */
-    private void forwardSearchRequest(final int seq, final int cid, final String name, final InetAddress address, final short port)
+    private void forwardSearchRequest(final int seq, final int cid, final String name, final InetSocketAddress address)
     {
         if (local_multicast == null)
             return;
         synchronized (send_buffer)
         {
             send_buffer.clear();
-            SearchRequest.encode(false, seq, cid, name, address, port, send_buffer);
+            SearchRequest.encode(false, seq, cid, name, address, send_buffer);
             send_buffer.flip();
             logger.log(Level.FINER, () -> "Forward search to " + local_multicast + "\n" + Hexdump.toHexdump(send_buffer));
             try

@@ -77,6 +77,7 @@ PVA Client:
  * Maintains pool of PVs
  * Registers new PVs with ChannelSearch
  * ChannelSearch: Exponential backup to ~30 seconds
+ * Forward unicast searches to local multicast group
  * Creates TCPHandler when channel found.
  * Support "anonymous" or "ca"
    (with user from "user.name" property and host from InetAddress.getLocalHost().getHostName())

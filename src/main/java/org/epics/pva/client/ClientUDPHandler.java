@@ -19,6 +19,7 @@ import org.epics.pva.Guid;
 import org.epics.pva.PVAConstants;
 import org.epics.pva.PVAHeader;
 import org.epics.pva.PVASettings;
+import org.epics.pva.data.Hexdump;
 import org.epics.pva.data.PVAAddress;
 import org.epics.pva.data.PVABool;
 import org.epics.pva.data.PVAFieldDesc;
@@ -68,9 +69,10 @@ class ClientUDPHandler extends UDPHandler
     // Create one UDP socket for the search send/response,
     // bound to a free port, so we can receive the search replies.
     private final DatagramChannel udp_search;
-    private final InetAddress response_address;
-    private final int response_port;
+    private final InetSocketAddress local_address;
+    private final InetSocketAddress local_multicast;
     private final ByteBuffer receive_buffer = ByteBuffer.allocate(PVAConstants.MAX_UDP_PACKET);
+    private final ByteBuffer forward_buffer = ByteBuffer.allocate(PVAConstants.MAX_UDP_PACKET);
 
     // Listen for UDP beacons on a separate socket, bound to the EPICS_PVA_BROADCAST_PORT,
     // with the understanding that it will only receive broadcasts;
@@ -88,37 +90,34 @@ class ClientUDPHandler extends UDPHandler
 
         // Search buffer may send broadcasts and gets re-used
         udp_search = Network.createUDP(true, 0);
-        final InetSocketAddress local_address = (InetSocketAddress) udp_search.getLocalAddress();
-        response_address = local_address.getAddress();
-        response_port = local_address.getPort();
+        local_address = (InetSocketAddress) udp_search.getLocalAddress();
+        local_multicast = Network.configureMulticast(udp_search);
 
         // Beacon socket only receives, does not send broadcasts
         udp_beacon = Network.createUDP(false, PVASettings.EPICS_PVA_BROADCAST_PORT);
 
-        logger.log(Level.FINE, "Awaiting search replies and beacons on UDP " + response_address +
-                               " port " + response_port + " and " + PVASettings.EPICS_PVA_BROADCAST_PORT);
+        logger.log(Level.FINE, "Awaiting search replies and beacons on UDP " + local_address +
+                               " and port " + PVASettings.EPICS_PVA_BROADCAST_PORT);
     }
 
-    /** Try to listen to multicast messages
-     *  @return Found support for multicast?
-     */
-    public boolean configureMulticast()
+    /** @return Found support for multicast? */
+    public boolean hasMulticast()
     {
-        return Network.configureMulticast(udp_search) != null;
+        return local_multicast != null;
     }
 
-    public InetAddress getResponseAddress()
+    public InetSocketAddress getResponseAddress()
     {
-        return response_address;
-    }
-
-    public int getResponsePort()
-    {
-        return response_port;
+        return local_address;
     }
 
     public void send(final ByteBuffer buffer, final InetSocketAddress target) throws Exception
     {
+        // synchronized (udp_search)?
+        // Not necessary based on Javadoc for send():
+        // "This method may be invoked at any time.
+        //  If another thread has already initiated a write operation...
+        //  invocation .. will block until the first operation is complete." 
         udp_search.send(buffer, target);
     }
 
@@ -126,11 +125,11 @@ class ClientUDPHandler extends UDPHandler
     {
         // Same code for messages from the 'search' and 'beacon' socket,
         // though each socket is likely to see only one type of message.
-        search_thread = new Thread(() -> listen(udp_search, receive_buffer), "UDP-receiver " + response_address + ":" + response_port);
+        search_thread = new Thread(() -> listen(udp_search, receive_buffer), "UDP-receiver " + local_address);
         search_thread.setDaemon(true);
         search_thread.start();
 
-        beacon_thread = new Thread(() -> listen(udp_beacon, beacon_buffer), "UDP-receiver " + response_address + ":" + PVASettings.EPICS_PVA_BROADCAST_PORT);
+        beacon_thread = new Thread(() -> listen(udp_beacon, beacon_buffer), "UDP-receiver " + local_address.getAddress() + ":" + PVASettings.EPICS_PVA_BROADCAST_PORT);
         beacon_thread.setDaemon(true);
         beacon_thread.start();
     }
@@ -144,8 +143,7 @@ class ClientUDPHandler extends UDPHandler
         case PVAHeader.CMD_BEACON:
             return handleBeacon(from, version, payload, buffer);
         case PVAHeader.CMD_SEARCH:
-            // Ignore search requests, which includes our own
-            return true;
+            return handleSearchRequest(from, version, payload, buffer);
         case PVAHeader.CMD_SEARCH_REPLY:
             return handleSearchReply(from, version, payload, buffer);
         default:
@@ -154,8 +152,9 @@ class ClientUDPHandler extends UDPHandler
         return false;
     }
 
+    /** Decode beacon info: Changes? New GUID? */
     private boolean handleBeacon(final InetSocketAddress from, final byte version,
-            final int payload, final ByteBuffer buffer)
+                                 final int payload, final ByteBuffer buffer)
     {
         if (payload < 12 + 1 + 1 + 2 + 16 + 2 + 4 + 1)
         {
@@ -209,6 +208,53 @@ class ClientUDPHandler extends UDPHandler
         return true;
     }
 
+    /** Check if search request needs to be forwarded
+     *
+     *  <p>For example, assume one or more servers on this host.
+     *  In addition, this PVA client is running, and it has been started last.
+     *  When remote clients send a unicast search request to this host,
+     *  only this PVA client will see the search request.
+     *  By forwarding it to the local multicast group,
+     *  all PVA servers on this host can see the search request.
+     */
+    private boolean handleSearchRequest(final InetSocketAddress from, final byte version,
+                                        final int payload, final ByteBuffer buffer)
+    {
+        final SearchRequest search = SearchRequest.decode(from, version, payload, buffer);
+        try
+        {
+            if (search != null  &&  search.unicast)
+            {
+                if (search.name == null)
+                {
+                    if (search.reply_required)
+                    {
+                        forward_buffer.clear();
+                        SearchRequest.encode(false, 0, -1, null, search.client, forward_buffer);
+                        forward_buffer.flip();
+                        logger.log(Level.FINER, () -> "Forward search to list servers to " + local_multicast + "\n" + Hexdump.toHexdump(forward_buffer));
+                        send(forward_buffer, local_multicast);
+                    }
+                }
+                else
+                    for (int i=0; i<search.name.length; ++i)
+                    {
+                        forward_buffer.clear();
+                        SearchRequest.encode(false, search.seq, search.cid[i], search.name[i], search.client, forward_buffer);
+                        forward_buffer.flip();
+                        logger.log(Level.FINER, () -> "Forward search to " + local_multicast + "\n" + Hexdump.toHexdump(forward_buffer));
+                        send(forward_buffer, local_multicast);
+                    }
+            }
+        }
+        catch (Exception ex)
+        {
+            logger.log(Level.WARNING, "Cannot forward search request", ex);
+        }
+        return true;
+    }
+
+    /** Handle search reply: Server has one of our desired channel names */
     private boolean handleSearchReply(final InetSocketAddress from, final byte version,
                                       final int payload, final ByteBuffer buffer)
     {

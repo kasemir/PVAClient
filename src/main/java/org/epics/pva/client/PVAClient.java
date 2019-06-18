@@ -63,7 +63,7 @@ public class PVAClient
             search_addresses = Network.getBroadcastAddresses(PVASettings.EPICS_PVA_BROADCAST_PORT);
 
         udp = new ClientUDPHandler(this::handleBeacon, this::handleSearchResponse);
-        if (udp.configureMulticast())
+        if (udp.hasMulticast())
             search_addresses.add(new InetSocketAddress(PVASettings.EPICS_PVA_MULTICAST_GROUP, PVASettings.EPICS_PVA_BROADCAST_PORT));
 
         search = new ChannelSearch(udp, search_addresses);
@@ -173,7 +173,7 @@ public class PVAClient
             else
                 return;
         }
-
+        // Beacon indicates changes or new GUID, so re-search missing channels
         search.boost();
     }
 
