@@ -19,19 +19,22 @@ import org.epics.pva.data.PVAStructure;
 @SuppressWarnings("nls")
 public class PVATimeStamp extends PVAStructure
 {
+    private final PVALong secs;
+    private final PVAInt nano;
+
     public PVATimeStamp()
     {
         super("timeStamp", "time_t",
               new PVALong("secondsPastEpoch", false, 0),
               new PVAInt("nanoseconds", false,  0),
               new PVAInt("userTag", 0));
+        secs = get(1);
+        nano = get(2);
     }
 
     /** @param time Desired time (seconds, nanoseconds) */
     public void set(final Instant time)
     {
-        final PVALong secs = get(1);
-        final PVAInt nano = get(2);
         secs.set(time.getEpochSecond());
         nano.set(time.getNano());
     }
