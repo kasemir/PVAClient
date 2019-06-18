@@ -202,12 +202,14 @@ public class PVAClient
             }
             catch (Exception ex)
             {
-                logger.log(Level.WARNING, "Cannot connect to TCP " + addr);
+                logger.log(Level.WARNING, "Cannot connect to TCP " + addr, ex);
             }
             return null;
         });
-
-        channel.registerWithServer(tcp);
+        // In case of connection errors (TCP connection blocked by firewall),
+        // tcp will be null
+        if (tcp != null)
+            channel.registerWithServer(tcp);
     }
 
     /** Called by {@link ClientTCPHandler} when connection is lost or closed because unused
