@@ -36,6 +36,21 @@ public class PVASettings
     /** Multicast address */
     public static String EPICS_PVA_MULTICAST_GROUP = "224.0.0.128";
 
+    /** TCP buffer size for sending data
+     *
+     *  <p>Messages are constructed within this buffer,
+     *  so it needs to be pre-configured to hold the maximum
+     *  package size.
+     */
+    // double[8 million] plus some protocol overhead
+    public static int EPICS_PVA_SEND_BUFFER_SIZE = 8001000;
+
+    /** Initial TCP buffer size for receiving data
+     *
+     *  <p>Buffer grows when larger packages are received.
+     */
+    public static final int EPICS_PVA_RECEIVE_BUFFER_SIZE = 16 * 1024;
+
     /** Connection timeout [seconds]
      *
      * <p>When approaching this time without having received a new value,
@@ -49,6 +64,7 @@ public class PVASettings
         EPICS_PVA_SERVER_PORT = set("EPICS_PVA_SERVER_PORT", EPICS_PVA_SERVER_PORT);
         EPICS_PVA_BROADCAST_PORT = set("EPICS_PVA_BROADCAST_PORT", EPICS_PVA_BROADCAST_PORT);
         EPICS_CA_CONN_TMO = set("EPICS_CA_CONN_TMO", EPICS_CA_CONN_TMO);
+        EPICS_PVA_SEND_BUFFER_SIZE = set("EPICS_PVA_SEND_BUFFER_SIZE", EPICS_PVA_SEND_BUFFER_SIZE);
     }
 
     private static String set(final String name, final String default_value)

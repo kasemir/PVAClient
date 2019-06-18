@@ -23,6 +23,7 @@ import java.util.logging.Level;
 
 import org.epics.pva.PVAConstants;
 import org.epics.pva.PVAHeader;
+import org.epics.pva.PVASettings;
 import org.epics.pva.data.Hexdump;
 
 /** Read and write TCP messages
@@ -48,8 +49,8 @@ abstract public class TCPHandler
 
     /** Buffer size on server.
      *
-     *  <p>Client reduces this from the default if server
-     *  reports a smaller value during connection validation.
+     *  <p>XXX Client reduces this from the default if server
+     *  reports a smaller value during connection validation?
      */
     protected volatile int server_buffer_size = PVAConstants.TCP_BUFFER_SIZE;
 
@@ -63,10 +64,10 @@ abstract public class TCPHandler
     protected volatile boolean running = true;
 
     /** Buffer used to receive data via {@link TCPHandler#receive_thread} */
-    protected ByteBuffer receive_buffer = ByteBuffer.allocate(PVAConstants.TCP_BUFFER_SIZE);
+    protected ByteBuffer receive_buffer = ByteBuffer.allocate(PVASettings.EPICS_PVA_RECEIVE_BUFFER_SIZE);
 
     /** Buffer used to send data via {@link TCPHandler#send_thread} */
-    protected final ByteBuffer send_buffer = ByteBuffer.allocate(PVAConstants.TCP_BUFFER_SIZE);
+    protected final ByteBuffer send_buffer = ByteBuffer.allocate(PVASettings.EPICS_PVA_SEND_BUFFER_SIZE);
 
     /** Queue of items to send to peer */
     private final BlockingQueue<RequestEncoder> send_items = new LinkedBlockingQueue<>();
