@@ -13,12 +13,12 @@ import java.nio.ByteBuffer;
 import java.util.BitSet;
 import java.util.logging.Level;
 
-import org.epics.pva.PVAHeader;
+import org.epics.pva.common.CommandHandler;
+import org.epics.pva.common.PVAHeader;
 import org.epics.pva.data.PVAData;
 import org.epics.pva.data.PVAStatus;
 import org.epics.pva.data.PVAString;
 import org.epics.pva.data.PVAStructure;
-import org.epics.pva.network.CommandHandler;
 
 /** Handle client's GET_TYPE command
  *  @author Kay Kasemir

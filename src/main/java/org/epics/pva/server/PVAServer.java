@@ -15,7 +15,6 @@ import java.util.concurrent.ConcurrentHashMap.KeySetView;
 import java.util.concurrent.ForkJoinPool;
 import java.util.logging.Level;
 
-import org.epics.pva.Guid;
 import org.epics.pva.data.PVAStructure;
 
 /** PVA Server
@@ -23,7 +22,10 @@ import org.epics.pva.data.PVAStructure;
  *  <p>Server is identified by a unique ID and
  *  holds {@link ServerPV}s.
  *
- *  <p>It listens to PV name searches via UDP,
+ *  <p>Each {@link ServerPV} is created with initial
+ *  value and can then be updated to a new value.
+ *
+ *  <p>Server listens to PV name searches via UDP,
  *  and establishes a {@link ServerTCPHandler}
  *  for each connected client.
  *

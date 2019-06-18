@@ -12,8 +12,8 @@ import static org.epics.pva.PVASettings.logger;
 import java.nio.ByteBuffer;
 import java.util.logging.Level;
 
-import org.epics.pva.PVAHeader;
-import org.epics.pva.network.CommandHandler;
+import org.epics.pva.common.CommandHandler;
+import org.epics.pva.common.PVAHeader;
 
 /** Handle client's DESTROY_REQUEST command
  *  @author Kay Kasemir

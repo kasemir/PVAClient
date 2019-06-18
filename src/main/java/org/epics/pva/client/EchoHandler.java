@@ -13,9 +13,9 @@ import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.logging.Level;
 
-import org.epics.pva.PVAHeader;
+import org.epics.pva.common.CommandHandler;
+import org.epics.pva.common.PVAHeader;
 import org.epics.pva.data.Hexdump;
-import org.epics.pva.network.CommandHandler;
 
 /** Handle a server's ECHO reply
  *  @author Kay Kasemir

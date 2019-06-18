@@ -51,6 +51,22 @@ public class PVASettings
      */
     public static final int EPICS_PVA_RECEIVE_BUFFER_SIZE = 16 * 1024;
 
+    /** UDP maximum send message size (for sending search requests).
+     *
+     *  <p>MAX_UDP: 1500 (max of ethernet and 802.{2,3} MTU) - 20/40(IPv4/IPv6) - 8(UDP) - some reserve (e.g. IPSEC)
+     * (the MTU of Ethernet is currently independent of its speed variant)
+     */
+    public static final int MAX_UDP_UNFRAGMENTED_SEND = 1440;
+
+    /** UDP maximum receive message size.
+     *
+     *  <p>MAX_UDP: 65535 (max UDP packet size) - 20/40(IPv4/IPv6) - 8(UDP)
+     */
+    public static final int MAX_UDP_PACKET = 65487;
+
+    /** (Initial) TCP buffer size */
+    public static final int TCP_BUFFER_SIZE = 1024 * 16;
+
     /** Connection timeout [seconds]
      *
      * <p>When approaching this time without having received a new value,

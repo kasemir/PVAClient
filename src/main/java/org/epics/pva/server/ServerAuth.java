@@ -9,7 +9,7 @@ package org.epics.pva.server;
 
 import java.nio.ByteBuffer;
 
-import org.epics.pva.PVAAuth;
+import org.epics.pva.common.PVAAuth;
 import org.epics.pva.data.PVAData;
 import org.epics.pva.data.PVAString;
 import org.epics.pva.data.PVAStructure;

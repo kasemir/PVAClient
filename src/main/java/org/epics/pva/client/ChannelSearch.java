@@ -23,10 +23,11 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
 import java.util.stream.Collectors;
 
-import org.epics.pva.PVAConstants;
-import org.epics.pva.PVAHeader;
+import org.epics.pva.PVASettings;
+import org.epics.pva.common.Network;
+import org.epics.pva.common.PVAHeader;
+import org.epics.pva.common.SearchRequest;
 import org.epics.pva.data.Hexdump;
-import org.epics.pva.network.Network;
 
 /** Handler for search requests
  *
@@ -110,7 +111,7 @@ class ChannelSearch
     });
 
     /** Buffer for assembling search messages */
-    private final ByteBuffer send_buffer = ByteBuffer.allocate(PVAConstants.MAX_UDP_UNFRAGMENTED_SEND);
+    private final ByteBuffer send_buffer = ByteBuffer.allocate(PVASettings.MAX_UDP_UNFRAGMENTED_SEND);
 
     /** Address list to which search requests are sent */
     private final List<InetSocketAddress> unicast_search_addresses = new ArrayList<>(), broadcast_search_addresses = new ArrayList<>();

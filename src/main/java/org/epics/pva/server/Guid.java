@@ -5,7 +5,7 @@
  * which accompanies this distribution, and is available at
  * http://www.eclipse.org/legal/epl-v10.html
  ******************************************************************************/
-package org.epics.pva;
+package org.epics.pva.server;
 
 import java.nio.ByteBuffer;
 import java.security.SecureRandom;

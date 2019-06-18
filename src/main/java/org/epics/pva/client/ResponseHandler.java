@@ -9,7 +9,7 @@ package org.epics.pva.client;
 
 import java.nio.ByteBuffer;
 
-import org.epics.pva.network.RequestEncoder;
+import org.epics.pva.common.RequestEncoder;
 
 /** Handler for response from server.
  *

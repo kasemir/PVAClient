@@ -23,13 +23,13 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
 
-import org.epics.pva.Guid;
-import org.epics.pva.PVAHeader;
 import org.epics.pva.PVASettings;
+import org.epics.pva.common.CommandHandlers;
+import org.epics.pva.common.PVAHeader;
+import org.epics.pva.common.RequestEncoder;
+import org.epics.pva.common.TCPHandler;
 import org.epics.pva.data.PVATypeRegistry;
-import org.epics.pva.network.CommandHandlers;
-import org.epics.pva.network.RequestEncoder;
-import org.epics.pva.network.TCPHandler;
+import org.epics.pva.server.Guid;
 
 /** Handle TCP connection to PVA server
  *

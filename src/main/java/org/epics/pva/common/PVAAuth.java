@@ -5,7 +5,7 @@
  * which accompanies this distribution, and is available at
  * http://www.eclipse.org/legal/epl-v10.html
  ******************************************************************************/
-package org.epics.pva;
+package org.epics.pva.common;
 
 /** PVA Authentication/Authorization related constants
  *  @author Kay Kasemir

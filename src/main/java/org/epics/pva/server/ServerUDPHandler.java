@@ -15,17 +15,15 @@ import java.nio.ByteBuffer;
 import java.nio.channels.DatagramChannel;
 import java.util.logging.Level;
 
-import org.epics.pva.Guid;
-import org.epics.pva.PVAConstants;
-import org.epics.pva.PVAHeader;
 import org.epics.pva.PVASettings;
-import org.epics.pva.client.SearchRequest;
+import org.epics.pva.common.Network;
+import org.epics.pva.common.PVAHeader;
+import org.epics.pva.common.SearchRequest;
+import org.epics.pva.common.UDPHandler;
 import org.epics.pva.data.Hexdump;
 import org.epics.pva.data.PVAAddress;
 import org.epics.pva.data.PVABool;
 import org.epics.pva.data.PVAString;
-import org.epics.pva.network.Network;
-import org.epics.pva.network.UDPHandler;
 
 /** Listen to search requests, send beacons
  *  @author Kay Kasemir
@@ -57,8 +55,8 @@ class ServerUDPHandler extends UDPHandler
     private final InetSocketAddress local_address;
     private final InetSocketAddress local_multicast;
 
-    private final ByteBuffer receive_buffer = ByteBuffer.allocate(PVAConstants.MAX_UDP_PACKET);
-    private final ByteBuffer send_buffer = ByteBuffer.allocate(PVAConstants.MAX_UDP_PACKET);
+    private final ByteBuffer receive_buffer = ByteBuffer.allocate(PVASettings.MAX_UDP_PACKET);
+    private final ByteBuffer send_buffer = ByteBuffer.allocate(PVASettings.MAX_UDP_PACKET);
 
     private volatile Thread listen_thread = null;
 

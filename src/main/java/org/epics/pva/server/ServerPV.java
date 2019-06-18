@@ -16,7 +16,11 @@ import java.util.logging.Level;
 
 import org.epics.pva.data.PVAStructure;
 
-/** Maintains all the server's PVs
+/** A served PV with data
+ *
+ *  <p>When updating the data, subscribed clients
+ *  receive the changed data elements.
+ *
  *  @author Kay Kasemir
  */
 @SuppressWarnings("nls")

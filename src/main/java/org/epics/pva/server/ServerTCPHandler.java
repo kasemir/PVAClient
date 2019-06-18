@@ -13,12 +13,12 @@ import java.nio.ByteBuffer;
 import java.nio.channels.SocketChannel;
 import java.util.logging.Level;
 
-import org.epics.pva.PVAHeader;
+import org.epics.pva.common.CommandHandlers;
+import org.epics.pva.common.PVAHeader;
+import org.epics.pva.common.TCPHandler;
 import org.epics.pva.data.PVASize;
 import org.epics.pva.data.PVAString;
 import org.epics.pva.data.PVATypeRegistry;
-import org.epics.pva.network.CommandHandlers;
-import org.epics.pva.network.TCPHandler;
 
 /** Handler for one TCP-connected client
  *  @author Kay Kasemir

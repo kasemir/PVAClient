@@ -22,12 +22,14 @@ import org.epics.pva.data.PVAStructure;
 
 /** Client channel
  *
- *  <p>Obtained from {@link PVAClient#getChannel()}.
+ *  <p>Obtained via {@link PVAClient#getChannel()}.
  *  Allows reading and writing a channel's data.
  *
  *  <p>Channel 'connects' automatically.
  *  A listener will be informed when connection state changes,
  *  with helpers to await connection or check current connection state.
+ *
+ *  <p>Once connected, channel can read or write data.
  *
  *  @author Kay Kasemir
  */

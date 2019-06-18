@@ -12,9 +12,9 @@ import static org.epics.pva.PVASettings.logger;
 import java.nio.ByteBuffer;
 import java.util.logging.Level;
 
-import org.epics.pva.PVAHeader;
+import org.epics.pva.common.PVAHeader;
+import org.epics.pva.common.RequestEncoder;
 import org.epics.pva.data.PVAString;
-import org.epics.pva.network.RequestEncoder;
 
 @SuppressWarnings("nls")
 class CreateChannelRequest implements RequestEncoder

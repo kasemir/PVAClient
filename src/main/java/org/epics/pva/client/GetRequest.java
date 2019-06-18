@@ -14,12 +14,12 @@ import java.util.BitSet;
 import java.util.concurrent.CompletableFuture;
 import java.util.logging.Level;
 
-import org.epics.pva.PVAHeader;
+import org.epics.pva.common.PVAHeader;
+import org.epics.pva.common.RequestEncoder;
 import org.epics.pva.data.PVABitSet;
 import org.epics.pva.data.PVAData;
 import org.epics.pva.data.PVAStatus;
 import org.epics.pva.data.PVAStructure;
-import org.epics.pva.network.RequestEncoder;
 
 @SuppressWarnings("nls")
 class GetRequest extends CompletableFuture<PVAStructure> implements RequestEncoder, ResponseHandler

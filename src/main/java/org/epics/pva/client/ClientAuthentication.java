@@ -15,7 +15,7 @@ import java.nio.ByteBuffer;
 import java.util.BitSet;
 import java.util.logging.Level;
 
-import org.epics.pva.PVAAuth;
+import org.epics.pva.common.PVAAuth;
 import org.epics.pva.data.PVAString;
 import org.epics.pva.data.PVAStructure;
 

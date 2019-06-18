@@ -5,7 +5,7 @@
  * which accompanies this distribution, and is available at
  * http://www.eclipse.org/legal/epl-v10.html
  ******************************************************************************/
-package org.epics.pva.network;
+package org.epics.pva.common;
 
 import static org.epics.pva.PVASettings.logger;
 
@@ -21,8 +21,6 @@ import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 
-import org.epics.pva.PVAConstants;
-import org.epics.pva.PVAHeader;
 import org.epics.pva.PVASettings;
 import org.epics.pva.data.Hexdump;
 
@@ -52,7 +50,7 @@ abstract public class TCPHandler
      *  <p>XXX Client reduces this from the default if server
      *  reports a smaller value during connection validation?
      */
-    protected volatile int server_buffer_size = PVAConstants.TCP_BUFFER_SIZE;
+    protected volatile int server_buffer_size = PVASettings.TCP_BUFFER_SIZE;
 
     /** Is this the client, expecting received messages to be marked as server messages? */
     private final boolean client_mode;

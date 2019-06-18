@@ -9,8 +9,8 @@ package org.epics.pva.client;
 
 import java.nio.ByteBuffer;
 
-import org.epics.pva.PVAHeader;
-import org.epics.pva.network.CommandHandler;
+import org.epics.pva.common.CommandHandler;
+import org.epics.pva.common.PVAHeader;
 
 /** Handle a server's GET reply
  *  @author Kay Kasemir

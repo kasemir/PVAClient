@@ -12,9 +12,9 @@ import static org.epics.pva.PVASettings.logger;
 import java.nio.ByteBuffer;
 import java.util.logging.Level;
 
-import org.epics.pva.PVAHeader;
+import org.epics.pva.common.CommandHandler;
+import org.epics.pva.common.PVAHeader;
 import org.epics.pva.data.PVAData;
-import org.epics.pva.network.CommandHandler;
 
 /** Handle client's MONITOR command
  *  @author Kay Kasemir

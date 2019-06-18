@@ -17,9 +17,9 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
 
-import org.epics.pva.Guid;
 import org.epics.pva.PVASettings;
-import org.epics.pva.network.Network;
+import org.epics.pva.common.Network;
+import org.epics.pva.server.Guid;
 
 /** PVA Client
  *
@@ -29,10 +29,6 @@ import org.epics.pva.network.Network;
  *  channels for the same name more than once will receive
  *  separate channels, with different internal channel IDs,
  *  which will result in separate channels on the PVA server.
- *
- *  <p>This is sufficient for simple clients,
- *  and higher-level client libraries tend to already
- *  pool PVs by name.
  *
  *  @author Kay Kasemir
  */

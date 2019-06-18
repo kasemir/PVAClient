@@ -5,7 +5,7 @@
  * which accompanies this distribution, and is available at
  * http://www.eclipse.org/legal/epl-v10.html
  ******************************************************************************/
-package org.epics.pva.client;
+package org.epics.pva.common;
 
 import static org.epics.pva.PVASettings.logger;
 
@@ -14,7 +14,6 @@ import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 import java.util.logging.Level;
 
-import org.epics.pva.PVAHeader;
 import org.epics.pva.data.PVAAddress;
 import org.epics.pva.data.PVAString;
 

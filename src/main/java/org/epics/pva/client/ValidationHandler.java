@@ -13,10 +13,10 @@ import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.epics.pva.PVAHeader;
+import org.epics.pva.common.CommandHandler;
+import org.epics.pva.common.PVAHeader;
 import org.epics.pva.data.PVASize;
 import org.epics.pva.data.PVAString;
-import org.epics.pva.network.CommandHandler;
 
 /** Handle a server's VALIDATION request
  *  @author Kay Kasemir

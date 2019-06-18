@@ -5,7 +5,7 @@
  * which accompanies this distribution, and is available at
  * http://www.eclipse.org/legal/epl-v10.html
  ******************************************************************************/
-package org.epics.pva.network;
+package org.epics.pva.common;
 
 import static org.epics.pva.PVASettings.logger;
 

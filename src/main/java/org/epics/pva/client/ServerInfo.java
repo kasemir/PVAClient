@@ -12,7 +12,7 @@ import java.util.Collection;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
-import org.epics.pva.Guid;
+import org.epics.pva.server.Guid;
 
 /** Info for a server
  *

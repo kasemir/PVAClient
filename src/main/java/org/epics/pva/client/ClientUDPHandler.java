@@ -15,17 +15,17 @@ import java.nio.ByteBuffer;
 import java.nio.channels.DatagramChannel;
 import java.util.logging.Level;
 
-import org.epics.pva.Guid;
-import org.epics.pva.PVAConstants;
-import org.epics.pva.PVAHeader;
 import org.epics.pva.PVASettings;
+import org.epics.pva.common.Network;
+import org.epics.pva.common.PVAHeader;
+import org.epics.pva.common.SearchRequest;
+import org.epics.pva.common.UDPHandler;
 import org.epics.pva.data.Hexdump;
 import org.epics.pva.data.PVAAddress;
 import org.epics.pva.data.PVABool;
 import org.epics.pva.data.PVAFieldDesc;
 import org.epics.pva.data.PVAString;
-import org.epics.pva.network.Network;
-import org.epics.pva.network.UDPHandler;
+import org.epics.pva.server.Guid;
 
 /** Sends and receives search replies, monitors beacons
  *  @author Kay Kasemir
@@ -71,14 +71,14 @@ class ClientUDPHandler extends UDPHandler
     private final DatagramChannel udp_search;
     private final InetSocketAddress local_address;
     private final InetSocketAddress local_multicast;
-    private final ByteBuffer receive_buffer = ByteBuffer.allocate(PVAConstants.MAX_UDP_PACKET);
-    private final ByteBuffer forward_buffer = ByteBuffer.allocate(PVAConstants.MAX_UDP_PACKET);
+    private final ByteBuffer receive_buffer = ByteBuffer.allocate(PVASettings.MAX_UDP_PACKET);
+    private final ByteBuffer forward_buffer = ByteBuffer.allocate(PVASettings.MAX_UDP_PACKET);
 
     // Listen for UDP beacons on a separate socket, bound to the EPICS_PVA_BROADCAST_PORT,
     // with the understanding that it will only receive broadcasts;
     // since they are often blocked by firewall, may receive nothing, ever.
     private final DatagramChannel udp_beacon;
-    private final ByteBuffer beacon_buffer = ByteBuffer.allocate(PVAConstants.MAX_UDP_PACKET);
+    private final ByteBuffer beacon_buffer = ByteBuffer.allocate(PVASettings.MAX_UDP_PACKET);
 
     private volatile Thread search_thread, beacon_thread;
 
@@ -117,7 +117,7 @@ class ClientUDPHandler extends UDPHandler
         // Not necessary based on Javadoc for send():
         // "This method may be invoked at any time.
         //  If another thread has already initiated a write operation...
-        //  invocation .. will block until the first operation is complete." 
+        //  invocation .. will block until the first operation is complete."
         udp_search.send(buffer, target);
     }
 
