@@ -1,7 +1,13 @@
 PVA Client
 ==========
 
-Exploration of a PV Access client for Java,
+Note that this code is now in Phoebus:
+
+    git clone https://github.com/shroffk/phoebus.git
+    cd phoebus/core/pva/
+    ant clean core-pva
+
+This repo was used for the original exploration of a PV Access client for Java,
 developed from scratch based on the 
 [PV Access Protocol Description](https://github.com/epics-base/pvAccessCPP/wiki/protocol),
 consulting the [Reference Implementation](https://github.com/epics-base/epicsCoreJava)
